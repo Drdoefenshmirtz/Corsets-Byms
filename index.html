@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Corsets by MS</title>
+
+  <!-- style.css controls ALL the looks: colours, text size, layout, flicker, the circle, the carousel -->
+  <!-- starts downloading the main font (Manrope) straight away, so it is ready when the text appears -->
+  <link rel="preload" href="fonts/manrope.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="style.css">
+
+  <!-- EARLY COLOUR: sets the page to the right time-of-day colour before anything is drawn, so the
+       page never flashes the default blush first (script.js keeps it updated afterwards) -->
+  <script>
+    (function () {
+      // time travel is only carried over on the Shop; the homepage always uses the real time
+      var off = 0;
+      try { if (!document.querySelector || location.pathname.indexOf("shop") > -1) off = +(sessionStorage.getItem("corsets-time-offset") || 0) || 0; } catch (e) {}
+      // D = one day in milliseconds; ms = how far through the day it is in South Africa (UTC + 2 hours)
+      var D = 86400000, ms = (((Date.now() + off + 7200000) % D) + D) % D;
+      // f = how light it is: 0 at midnight, 1 at midday, softened at both ends
+      var f = 0.5 - 0.5 * Math.cos(2 * Math.PI * ms / D); f = f * f * (3 - 2 * f);
+      // L = the midday pale blush, K = the midnight logo pink (keep these the same as LIGHT and DARK in script.js); bg = the mix between them for this time
+      var L = [238, 226, 226], K = [196, 180, 181];
+      var bg = [0, 1, 2].map(function (i) { return Math.round(K[i] + (L[i] - K[i]) * f); });
+      // lum = how bright a colour looks; con = the contrast between two brightnesses
+      function lum(c) { var v = c.map(function (x) { x /= 255; return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); }); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; }
+      function con(a, b) { return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05); }
+      // the text colour: near-black or cream, whichever is easier to read on that background
+      var l = lum(bg), ink = con(l, lum([17, 17, 17])) >= con(l, lum([243, 239, 230])) ? [17, 17, 17] : [243, 239, 230];
+      // sets the two colours on the page; script.js keeps them updated as the time changes
+      var r = document.documentElement.style;
+      r.setProperty("--bg", "rgb(" + bg.join(",") + ")");
+      r.setProperty("--ink", "rgb(" + ink.join(",") + ")");
+    })();
+  </script>
+
+
+  <!-- LOADING ANIMATION, STEP 1: this tiny script runs before anything is drawn. It marks the page as
+       "is-loading", which makes style.css hide the carousel and show the loading screen straight away
+       (so there is no flash of the finished page). script.js removes the mark when the animation ends.
+       The 10000 below is a safety net: after 10 seconds the loading screen is removed no matter what. -->
+  <script>
+    document.documentElement.classList.add("is-loading");
+    setTimeout(function () { document.documentElement.classList.remove("is-loading"); }, 10000);
+  </script>
+</head>
+<body>
+
+  <!-- LOADING ANIMATION, STEP 2: the loading screen. It covers the page (below the menu bar, which
+       writes itself in on top of it). script.js fills in the small picture card and the thin line.
+       When loading is finished script.js removes this screen by itself. -->
+  <div class="loader" id="loader" aria-hidden="true">
+    <!-- THE LOGO CIRCLE: starts as the Corsets by MS logo, then the photos flash inside it, behind the
+         lettering, and finally it opens up and grows into the first slide. script.js controls it. -->
+    <div class="loader-card" id="loader-card">
+      <div class="loader-tint" id="loader-tint"></div>                                  <!-- the dark logo colour, laid over the photos -->
+      <img class="loader-logo" id="loader-logo" src="images/logo-letters.svg" alt="">   <!-- the MS and "Corsets by" lettering -->
+    </div>
+    <div class="loader-line" id="loader-line"></div>   <!-- the thin line along the bottom that fills up as the page loads -->
+  </div>
+
+  <!-- THE MENU BAR: one row split into 4 equal columns (the columns are set in style.css) -->
+  <header class="menu-bar">
+
+    <!-- COLUMN 1: the mini round logo (images/logo-mini.svg). It takes people back to this page
+         (the homepage). aria-label lets screen readers say the full name "Corsets by MS".
+         aria-current="page" tells screen readers that this is the page you are on.
+         Its size is set in style.css under THE MINI LOGO. -->
+    <a href="index.html" class="brand" aria-current="page" aria-label="Corsets by MS"><img src="images/logo-mini.svg" alt="" width="60" height="60"></a>
+
+    <!-- COLUMN 2: "Book appointment". It also doubles as the way to get in touch. -->
+    <nav class="tabs" aria-label="Primary">
+      <a href="/book-appointment">Book appointment</a>
+    </nav>
+
+    <!-- COLUMN 3: "Shop", on the same top line as "Book appointment".
+         ("Menu" and "Contact" were removed to keep the bar clean: the brand name takes people home.) -->
+    <nav class="tabs" aria-label="Shop">
+      <a href="shop.html">Shop</a>
+    </nav>
+
+    <!-- COLUMN 4: the time circle. script.js controls everything inside it.
+         Drag anywhere in the circle (or use the small solid circle) to time travel. -->
+    <div class="sa-dial" id="sa-dial">
+
+      <!-- The words and numbers in the middle of the circle -->
+      <div class="sa-readout">
+        <!-- Text above the time. script.js switches it between "SA time" and "Time travel" -->
+        <span id="sa-label">SA time</span>
+
+        <!-- The time: hours and minutes (sa-hm), a dot, then the seconds (sa-sec).
+             The seconds are separate so script.js can fade just them in and out each second. -->
+        <span><span id="sa-hm">--.--</span>.<span id="sa-sec">--</span></span>
+      </div>
+
+      <!-- The small solid circle. script.js moves it around the edge of the big circle.
+           The role/aria attributes let screen readers and the keyboard (arrow keys) use it. -->
+      <!-- THE FIDGET BUBBLE: a second, hollow bubble that floats around inside the circle.
+           When the small solid circle comes near it, it gets bumped away. script.js moves it. -->
+      <div class="sa-bubble" id="sa-bubble" aria-hidden="true"></div>
+
+      <div class="sa-knob" id="sa-knob" role="slider" tabindex="0"
+           aria-label="Time of day" aria-valuemin="0" aria-valuemax="1439" aria-valuenow="0"></div>
+    </div>
+  </header>
+
+  <!-- THE CAROUSEL: a row of images that drifts sideways on its own and starts again when it
+       reaches the end. Grab it and move it to make it go faster. style.css sets the sizes
+       (2 images in full with a quarter of the next one showing on each side), and the
+       second half of script.js makes it move. -->
+  <main>
+    <section class="carousel" aria-label="Featured stories">
+
+      <!-- The window you look through. It hides everything outside the screen. -->
+      <div class="carousel-track" id="carousel-track">
+
+        <!-- The long strip of images. script.js slides this strip along.
+             script.js also adds a second copy of the images after these,
+             which is how the carousel starts again without a gap. -->
+        <div class="carousel-rail" id="carousel-rail">
+
+          <!-- IMAGE 1. To change the picture, change the file name in src="...".
+               To change the one-word title, change the word between the <a> tags.
+               THE ARTICLE THAT OPENS WHEN THIS IMAGE (or its title) IS CLICKED is described by the
+               three data-... pieces on the title:
+                 data-headline = the big headline of the article (shown in lowercase)
+                 data-meta-1   = the first small caption at the bottom, written as  Heading|Text
+                 data-meta-2   = the second small caption at the bottom, written as  Heading|Text
+               href="..." is the address of the real article page, for when you build those later.
+               THE ARTICLE TEXT is the <div class="card-article"> under each title. It stays hidden on the
+               page itself. When the article opens, its paragraphs appear under the big picture. Write as
+               many <p>...</p> paragraphs as you like: the article scrolls to fit them. -->
+          <article class="card">
+            <!-- the Heritage photo: a traditional print corset top and tiered skirt at an umbondo (cropped to put her in the centre) -->
+            <img src="images/heritage.jpg" alt="A woman in a strapless print corset top and tiered skirt at an umbondo celebration" draggable="false">
+            <a class="card-title" href="/article-heritage"
+               data-headline="heritage corsets" data-meta-1="Collection|2026" data-meta-2="Design|Corsets &amp; couture">Heritage</a>
+            <div class="card-article" hidden>
+              <p>Heritage is where Corsets by MS began: structured bodices cut and boned by hand, shaped to hold the figure and then forgotten the moment they are worn. Every piece starts from a classic silhouette and is refined over several fittings.</p>
+              <p>Steel and cotton coutil give the shape, soft linings give the comfort. The result is a corset made to be seen, not hidden.</p>
+            </div>
+          </article>
+
+          <!-- IMAGE 2: an ANIMATED picture. It is a short looping video, so the trees behind
+               her sway while she stays still. "poster" is the still picture shown while the
+               video loads. Two video files are listed so every browser can play one.
+               "autoplay muted loop playsinline" makes it play by itself, silently, forever. -->
+          <article class="card">
+            <video poster="images/image-2.jpg" autoplay muted loop playsinline preload="auto"
+                   aria-label="Describe image 2 here">
+              <source src="images/image-2.mp4" type="video/mp4">
+              <source src="images/image-2.webm" type="video/webm">
+            </video>
+            <a class="card-title" href="/article-bridal"
+               data-headline="bridal in red" data-meta-1="Bestseller|2026" data-meta-2="Design|Bridal &amp; ceremony">Bridal</a>
+            <div class="card-article" hidden>
+              <p>Bridal in red is a celebration of colour. Instead of white, a fitted red corset dress and a hand-finished veil, made to move with the bride from the ceremony to the very last photograph.</p>
+              <p>Each dress is made to measure, with the embroidery chosen together so that the day feels like her own.</p>
+            </div>
+          </article>
+
+          <!-- IMAGE 3 -->
+          <article class="card">
+            <img src="images/image-3.jpg" alt="Describe image 3 here" draggable="false">
+            <a class="card-title" href="/article-studio"
+               data-headline="studio sessions" data-meta-1="Editorial|2026" data-meta-2="Design|Tailoring &amp; fit">Studio</a>
+            <div class="card-article" hidden>
+              <p>Studio sessions are where a design meets the person who will wear it. Soft light, a plain wall and nothing to hide behind: just the line of the garment and how it sits.</p>
+              <p>We use these sessions to check the fit, adjust the tailoring and capture the pieces exactly as they look in real life.</p>
+            </div>
+          </article>
+
+          <!-- IMAGE 4: the Atelier photo, a still picture: high-waisted corset trousers at the steel rings,
+               at night (it replaced the moving sketches video; image-4.mp4 and .webm are no longer used) -->
+          <article class="card">
+            <img src="images/atelier.jpg" alt="A woman in high-waisted corset-waist trousers and a white T-shirt in front of steel ring sculptures at night" draggable="false">
+            <a class="card-title" href="/article-atelier"
+               data-headline="inside the atelier" data-meta-1="Process|2026" data-meta-2="Design|Sketches &amp; patterns">Atelier</a>
+            <div class="card-article" hidden>
+              <p>Inside the atelier, every garment begins as a sketch. Pencil lines on craft paper turn into patterns, and the patterns into the first rough toile pinned on the stand.</p>
+              <p>It is slow, careful work, and it is the reason each piece fits the way it does. Nothing leaves the atelier until it has been tried, adjusted and tried again.</p>
+            </div>
+          </article>
+
+          <!-- IMAGE 5 -->
+          <article class="card">
+            <img src="images/image-5.jpg" alt="Describe image 5 here" draggable="false">
+            <a class="card-title" href="/article-occasion"
+               data-headline="occasion wear" data-meta-1="Collection|2026" data-meta-2="Design|Evening &amp; occasion">Occasion</a>
+            <div class="card-article" hidden>
+              <p>Occasion wear is made for the evenings that matter: engagements, galas, birthdays and everything in between. Clean lines, a defined waist and fabric that catches the light.</p>
+              <p>Choose a piece from the collection or book an appointment and we will make something just for you.</p>
+            </div>
+          </article>
+
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- THE ARTICLE: what opens when an image or its title is clicked. It stays hidden until then.
+       script.js (Part 4) fills in the headline and the two captions from the clicked title's
+       data-... pieces, and style.css lays it out: headline and captions bottom-left, the big
+       picture on the right. "article-slot" is an invisible box that marks exactly where the picture
+       lands, so the picture's position is set in style.css and not in the script. -->
+  <section class="article" id="article" aria-hidden="true" tabindex="-1" aria-label="Article">
+    <!-- everything inside this box scrolls together: the picture, then the article text under it -->
+    <div class="article-scroll">
+      <div class="article-slot" id="article-slot"></div>      <!-- the picture lands here (script.js puts a copy of it inside) -->
+      <div class="article-text">                              <!-- headline and captions: they stay fixed on the left while the right side scrolls -->
+        <h1 class="article-title" id="article-title"></h1>
+        <div class="article-meta" id="article-meta"></div>
+      </div>
+      <div class="article-copy" id="article-copy"></div>      <!-- the article paragraphs from the clicked card -->
+    </div>
+  </section>
+
+  <!-- THE FLYING PICTURE: a copy of the clicked picture that slides out of the row and grows into
+       the article's big picture. script.js controls it. -->
+  <div class="flyer" id="flyer" aria-hidden="true"></div>
+
+  <!-- script.js controls the behaviour: the clock, dragging, background and text colour,
+       and the carousel. It sits at the bottom so the page above is already loaded when it runs. -->
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shop | Corsets by MS</title>
+
+  <!-- The same style.css as the Menu page, so the menu bar looks identical.
+       The Shop-only pieces are at the very bottom of style.css. -->
+  <!-- starts downloading the main font (Manrope) straight away, so it is ready when the text appears -->
+  <link rel="preload" href="fonts/manrope.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="style.css">
+
+  <!-- EARLY COLOUR: sets the page to the right time-of-day colour before anything is drawn, so the
+       page never flashes the default blush first (script.js keeps it updated afterwards) -->
+  <script>
+    (function () {
+      // the time travelled to on the homepage (in milliseconds), carried over to the Shop
+      var off = 0;
+      try { if (!document.querySelector || location.pathname.indexOf("shop") > -1) off = +(sessionStorage.getItem("corsets-time-offset") || 0) || 0; } catch (e) {}
+      // D = one day in milliseconds; ms = how far through the day it is in South Africa (UTC + 2 hours)
+      var D = 86400000, ms = (((Date.now() + off + 7200000) % D) + D) % D;
+      // f = how light it is: 0 at midnight, 1 at midday, softened at both ends
+      var f = 0.5 - 0.5 * Math.cos(2 * Math.PI * ms / D); f = f * f * (3 - 2 * f);
+      // L = the midday pale blush, K = the midnight logo pink (keep these the same as LIGHT and DARK in script.js); bg = the mix between them for this time
+      var L = [238, 226, 226], K = [196, 180, 181];
+      var bg = [0, 1, 2].map(function (i) { return Math.round(K[i] + (L[i] - K[i]) * f); });
+      // lum = how bright a colour looks; con = the contrast between two brightnesses
+      function lum(c) { var v = c.map(function (x) { x /= 255; return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); }); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; }
+      function con(a, b) { return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05); }
+      // the text colour: near-black or cream, whichever is easier to read on that background
+      var l = lum(bg), ink = con(l, lum([17, 17, 17])) >= con(l, lum([243, 239, 230])) ? [17, 17, 17] : [243, 239, 230];
+      // sets the two colours on the page (on the Shop, the fixed pink "palette-logo" colours then take over)
+      var r = document.documentElement.style;
+      r.setProperty("--bg", "rgb(" + bg.join(",") + ")");
+      r.setProperty("--ink", "rgb(" + ink.join(",") + ")");
+    })();
+  </script>
+
+</head>
+<body class="has-hero palette-logo">
+
+  <!-- THE MENU BAR: the same one row of 4 equal columns as the Menu page -->
+  <header class="menu-bar">
+
+    <!-- COLUMN 1: the mini round logo. It takes people back to the homepage, the same as on the Menu page. -->
+    <a href="index.html" class="brand" aria-label="Corsets by MS"><img src="images/logo-mini.svg" alt="" width="60" height="60"></a>
+
+    <!-- COLUMNS 2 AND 3: the shop categories in ONE line, centred: Men · Women · Miscellaneous.
+         (class "tabs-row" lays them side by side; see THE SHOP MENU IN ONE LINE in style.css.)
+         Each link will open its own products once those are built. Women glides down to the women's pieces. -->
+    <nav class="tabs tabs-row" aria-label="Shop categories">
+      <a href="#men">Men</a>
+      <a href="#shop-products" id="tab-women">Women</a>
+      <a href="#misc">Miscellaneous</a>
+    </nav>
+
+    <!-- COLUMN 4: the small cart button, on the right-hand side, where the time circle is on the
+         homepage. (To get back to the homepage, people click "MS".) -->
+    <div class="shop-end">
+      <!-- THE CART BUTTON. The 0 is the number of pieces in the bag. It is counted by CorsetsBag.add()
+           in script.js, which "Add to bag" will call once the product pages are built. -->
+      <button class="cart cart-hanger" id="cart" type="button" aria-label="Bag, 0 items">
+        <!-- THE CORSET ON A HANGER: an outline when the bag is empty, filled in once something is added -->
+        <svg class="hanger-icon" viewBox="0 0 40 50" aria-hidden="true">
+          <g class="hanger-swing">
+            <path class="hook" d="M20 10 V7.5 a2.6 2.6 0 1 0 -2.6 -2.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            <path class="arms" d="M4.5 17.5 Q5 15.5 7 15 L20 10 L33 15 Q35 15.5 35.5 17.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <path class="corset" d="M11 19 C12 15 17 15 20 19 C23 15 28 15 29 19 C29 24 25 27 25 31 C25 36 30 39 31 45 C24 47 16 47 9 45 C10 39 15 36 15 31 C15 27 11 24 11 19 Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          </g>
+        </svg>
+        <!-- THE SWING TAG: hangs off the hanger with the number of pieces, only once something is added -->
+        <span class="swing-tag"><span id="cart-count">0</span></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- THE OPENING PHOTO: fills the whole screen when the Shop opens, with the menu floating over it in white.
+       Laptops and bigger screens get the wide photo (her whole body fits). Phones get the square original,
+       which shows her head to toe on a tall screen. The browser picks the right file by itself. -->
+  <section class="shop-hero" id="shop-hero">
+    <!-- a soft blurred copy of the photo, only seen at the sides on very wide screens -->
+    <div class="shop-hero-fill" aria-hidden="true"></div>
+    <picture>
+      <source media="(max-aspect-ratio: 1/1)" srcset="images/shop-hero-960.jpg 960w, images/shop-hero-1920.jpg 1920w" sizes="100vw">
+      <img src="images/shop-hero-wide-1600.jpg"
+           srcset="images/shop-hero-wide-1600.jpg 1600w, images/shop-hero-wide-2560.jpg 2560w" sizes="100vw"
+           alt="A model in a Corsets by MS heritage corset and full skirt, in a garden in front of a brick house">
+    </picture>
+    <!-- THE CAPTION AND CALL TO ACTION, bottom left of the photo.
+         "Shop corsets" glides down to the corsets under the photo. -->
+    <div class="hero-shade" aria-hidden="true"></div>
+    <div class="hero-caption">
+      <span class="hc-main">2026 Corsets collection</span>
+      <span class="hc-sub">Made by hand in South Africa</span>
+      <a href="#shop-products" class="hc-cta" id="hero-cta">Shop women <span aria-hidden="true">&darr;</span></a>
+    </div>
+  </section>
+
+  <!-- THE SHOP PAGE CONTENT: the products will go in here -->
+  <main class="shop-main rise-sheet" id="shop-products">
+    <!-- "rise-sheet" makes this section slide up over the photo; its id is where "Shop corsets" glides to -->
+    <!-- THE STATEMENT: one calm line that opens the corsets (placeholder words) -->
+    <section class="cs-statement">
+      <p>Structured, boned and fitted by hand.</p>
+    </section>
+    <!-- THE WOMEN'S PIECES (placeholder names, prices, descriptions and photos). Each piece is one "cs-card":
+         the oval photo ("cs-img"), then the name and price ("cs-meta"). Copy a card to add a piece.
+         data-type  = which sizes it comes in: "corset" (XXS-XS, S-M, L-XL) or "pants" (24 to 36).
+                      The size lists are at the top of THE PRODUCT VIEW in script.js.
+         data-desc  = the short description shown when the piece is opened. -->
+    <section class="cs-grid">
+        <a class="cs-card" href="#" data-type="corset" data-desc="A structured, hand-boned corset in a bold heritage print, finished with a high front split skirt. Made to be worn as the centre of the look."><span class="cs-img"><img src="images/shop-hero-960.jpg" alt=""></span>
+          <span class="cs-meta"><span>Heritage Corset</span><span>R 2,450</span></span></a>
+        <a class="cs-card" href="#" data-type="corset" data-desc="A softly structured bustier with hand-placed beading, cut to sit cleanly over tailored trousers or a full skirt."><span class="cs-img"><img src="images/image-3.jpg" alt=""></span>
+          <span class="cs-meta"><span>Studio Bustier</span><span>R 1,650</span></span></a>
+        <a class="cs-card" href="#" data-type="corset" data-desc="A fitted bridal corset in deep red satin, boned for shape and lined for comfort, made for the ceremony through to the last dance."><span class="cs-img"><img src="images/image-2.jpg" alt=""></span>
+          <span class="cs-meta"><span>Bridal Corset</span><span>R 3,800</span></span></a>
+        <a class="cs-card" href="#" data-type="corset" data-desc="A bright occasion corset in printed cotton, shaped through the waist and finished with a sweetheart neckline."><span class="cs-img"><img src="images/image-5.jpg" alt=""></span>
+          <span class="cs-meta"><span>Occasion Corset</span><span>R 2,200</span></span></a>
+        <a class="cs-card" href="#" data-type="corset" data-desc="A strapless print bodice paired with a tiered skirt, made for celebrations and family occasions."><span class="cs-img"><img src="images/heritage.jpg" alt=""></span>
+          <span class="cs-meta"><span>Heritage Bodice</span><span>R 1,800</span></span></a>
+        <a class="cs-card" href="#" data-type="pants" data-desc="High-waisted wide-leg trousers with a corset-shaped waistband, cut in textured denim and finished with a deep turn-up."><span class="cs-img"><img src="images/atelier.jpg" alt=""></span>
+          <span class="cs-meta"><span>Atelier Trouser</span><span>R 1,950</span></span></a>
+        <!-- the red satin corset and pencil skirt (placeholder name, price and description) -->
+        <a class="cs-card" href="#" data-type="corset" data-desc="A red satin corset with a sculpted dipped neckline and visible boning, paired with a fitted pencil skirt in the same satin."><span class="cs-img"><img src="images/scarlet.jpg" alt=""></span>
+          <span class="cs-meta"><span>Scarlet Satin Corset</span><span>R 2,600</span></span></a>
+        <!-- the blush sequin and pearl corset top, studio shot (placeholder name, price and description) -->
+        <a class="cs-card" href="#" data-type="corset" data-desc="A blush corset top covered in rose-gold sequins and finished with hand-sewn pearl drops, shaped through the waist with a softly curved hem."><span class="cs-img"><img src="images/pearl.jpg" alt=""></span>
+          <span class="cs-meta"><span>Pearl Sequin Corset</span><span>R 2,100</span></span></a>
+    </section>
+  </main>
+
+  <!-- THE PRODUCT VIEW: opens when a piece is clicked (like the homepage articles). It stays empty and
+       hidden until then; script.js fills it in. The look is in style.css under THE PRODUCT VIEW. -->
+  <div class="product" id="product" aria-hidden="true" tabindex="-1" role="dialog" aria-label="Product details">
+    <!-- the spot the big oval photo flies to, on the right -->
+    <div class="product-slot" id="product-slot"></div>
+    <!-- the details, bottom left -->
+    <div class="product-info">
+      <button class="pd-close" id="pd-close" type="button">&larr; Back to women</button>
+      <h1 class="pd-title" id="pd-title"></h1>
+      <div class="pd-rest">
+        <p class="pd-price" id="pd-price"></p>
+        <p class="pd-desc" id="pd-desc"></p>
+        <p class="pd-label">Size</p>
+        <div class="pd-sizes" id="pd-sizes" role="group" aria-label="Choose a size"></div>
+        <button class="pd-add" id="pd-add" type="button">Add to bag</button>
+        <p class="pd-note">Made by hand in South Africa</p>
+      </div>
+    </div>
+  </div>
+  <!-- the copy of the photo that flies from the grid to the product view -->
+  <div class="flyer" id="p-flyer" aria-hidden="true"></div>
+
+  <!-- The same script.js as the Menu page. It skips the time circle, carousel, loading animation
+       and articles here, because this page does not have them. -->
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+CORSETS BY MS - WEBSITE NOTES
+=============================
+
+THE CAROUSEL (homepage)
+-----------------------
+Purpose: the carousel is the brand's PORTFOLIO. It shows the work.
+
+- It is the first thing people see, so it carries the "big fashion house" feeling:
+  images first, very few words, lots of space, no prices.
+- It shows the craft and quality of the pieces (heritage, bridal, studio, atelier, occasion)
+  before a customer ever meets MS.
+- Each picture opens a short article that tells the story behind the piece
+  (storytelling over selling).
+- It should lead people towards booking an appointment or visiting the Shop.
+
+It must be easy to update:
+- New pieces will be added over time, so the portfolio has to stay current.
+- Plan: build a back end so pieces (photo, title, headline, article text) can be added
+  without editing the code.
+- Still to decide: who will log into the back end (you, MS, or both).

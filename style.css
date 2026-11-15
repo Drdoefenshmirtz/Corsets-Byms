@@ -1,0 +1,1156 @@
+/* =====================================================
+   SETTINGS: the main things you will want to change
+   ===================================================== */
+:root {
+  /* Page background. script.js changes this automatically as the time moves
+     (pale blush at midday, the logo's dusty pink at midnight), so this is only the starting colour. */
+  --bg: #eee2e2;
+
+  /* Text and line colour. script.js switches it between black and off-white
+     so the text is always readable on the current background. */
+  --ink: #111111;
+
+  /* MENU TEXT SIZE: controls "Corsets by MS", "Book appointment", "Shop", "Menu", "Contact",
+     and "Men", "Women", "Corporate", "Misc" and the cart on the Shop page.
+     Set to 13px, which is a small, light look. If you want it BIG, change this to 130px,
+     but note that at 130px the four columns will not fit side by side on a normal screen. */
+  --size: 13px;
+
+  /* THE MAIN FONT for the menu, picture titles, time circle and articles: Manrope.
+     It is loaded from the fonts folder (see @font-face below), so every phone and computer shows the
+     same font. The fonts after it are only used if the file cannot load. */
+  --font: "Manrope", "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+  /* Width and height of the time circle. Kept small and quiet so it reads as a detail */
+  --dial: 88px;
+}
+
+/* MANROPE, the main font. One file holds every weight (regular to bold) for English text. */
+@font-face {
+  font-family: "Manrope";
+  src: url("fonts/manrope.woff2") format("woff2");
+  font-weight: 200 800;
+  font-display: swap;   /* shows the text straight away in a backup font, then swaps to Manrope once loaded */
+}
+
+/* Makes padding and borders count inside an element's width, so sizes behave predictably */
+* { box-sizing: border-box; }
+
+/* RESERVES SPACE FOR THE SCROLLBAR AT ALL TIMES. While the page loads the scrollbar is hidden, and
+   when loading ends it appears. Without this line the page suddenly became ~15px narrower at that
+   moment, every picture shrank a little and the whole row jumped. This was the "lag" when the
+   carousel started. With the space reserved, nothing moves. */
+html { scrollbar-gutter: stable; }
+
+/* THE PAGE: its background and text colour come from the two settings above */
+body {
+  margin: 0;
+  font-family: var(--font);
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/* =====================================================
+   THE MENU BAR LAYOUT
+   ===================================================== */
+.menu-bar {
+  display: grid;                                          /* lays the items out in columns */
+  grid-template-columns: repeat(4, auto);                 /* 4 columns: brand | book appointment | shop | circle */
+  justify-content: space-between;                         /* SPACES THEM OUT: equal gaps between all four, edge to edge */
+  column-gap: 24px;                                       /* the smallest gap allowed between the columns */
+  align-items: start;                                     /* every column starts at the top */
+  padding: 20px 24px;                                     /* space around the bar (top/bottom, left/right) */
+
+  font-family: var(--font);                               /* the font (set at the top) */
+  font-weight: 400;                                       /* regular weight */
+  font-size: var(--size);                                 /* text size comes from --size at the top */
+  line-height: 1.2;                                       /* space between the stacked lines */
+
+  /* LOCKS THE MENU TO THE SCREEN: it stays at the top while the page scrolls.
+     z-index 100 keeps it above the pictures, the loading screen (90) and the article (70/85).
+     The background is the page colour so pictures never show through it. */
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg);
+}
+
+/* Every menu link: takes the page text colour and never has an underline */
+.menu-bar a {
+  display: block;            /* each link gets its own line */
+  color: inherit;            /* uses --ink, so it turns light when the background goes dark */
+  text-decoration: none;     /* no underline, in any state */
+}
+
+/* The time circle (homepage) and the cart (Shop page) always sit in the 4th column */
+.sa-dial,
+.shop-end { grid-column: 4; }
+
+/* THE "MS" MONOGRAM in the top-left corner: the same serif as the logo (Playfair Display).
+   The font file only holds the letters M and S, so it is tiny and loads instantly.
+   Change 34px to make the monogram bigger or smaller. */
+@font-face {
+  font-family: "Playfair MS";
+  src: url("fonts/playfair-ms.woff") format("woff");
+  font-display: block;   /* waits for the font (it is tiny) so the monogram never flashes in another font */
+}
+.brand {
+  font-family: "Playfair MS", "Playfair Display", Georgia, serif;
+  font-weight: 400;
+  font-size: 34px;
+  line-height: 0.9;
+  letter-spacing: -0.01em;
+}
+
+/* THE MINI LOGO: the round Corsets by MS logo now sits in the top-left corner instead of the
+   "MS" letters (the letters' font above is kept in case you want them back).
+   Change 60px to make it bigger or smaller (48px on phones, below). */
+.brand { line-height: 0; }                                   /* no extra space around the picture */
+.brand img { display: block; width: 60px; height: 60px; }   /* the size of the mini logo */
+@media (max-width: 700px) { .brand img { width: 48px; height: 48px; } }   /* phones: a little smaller */
+
+/* Columns 2 and 3: stack the two links on top of each other */
+.tabs {
+  display: flex;
+  flex-direction: column;
+}
+
+/* =====================================================
+   FLICKER: shows that a menu link (or carousel title) is being interacted with
+   ===================================================== */
+
+/* The flicker itself: the text quickly dips and comes back a few times, then settles.
+   Change the opacity numbers to make the dips deeper (lower) or softer (higher). */
+@keyframes flicker {
+  0%   { opacity: 1; }
+  8%   { opacity: 0.25; }
+  16%  { opacity: 1; }
+  28%  { opacity: 0.4; }
+  36%  { opacity: 1; }
+  52%  { opacity: 0.3; }
+  60%  { opacity: 1; }
+  100% { opacity: 1; }
+}
+
+/* When the mouse is over a link, a finger presses it, or it is selected with the
+   keyboard (Tab), the link flickers. There is no underline, so the flicker alone
+   shows the interaction. This covers the menu links AND the one-word titles above the pictures
+   (the titles also roll and lift: see THE POP-UP ON THE IMAGES further down).
+   "1.2s" is how long one flicker lasts. "infinite" keeps it going while you are on it. */
+.menu-bar a:hover,
+.menu-bar a:focus-visible,
+.menu-bar a:active,
+.card-title:hover,
+.card-title:focus-visible,
+.card-title:active {
+  animation: flicker 1.2s linear infinite;
+}
+
+/* =====================================================
+   THE TIME CIRCLE
+   ===================================================== */
+
+/* The big circle: the outline and the area you can drag */
+.sa-dial {
+  position: relative;               /* lets the text and small circle be placed inside it */
+  justify-self: end;                /* pushes the circle to the right-hand side of its column */
+  width: var(--dial);
+  height: var(--dial);
+  border: 1px solid var(--ink);     /* the circle line: thin, uses the text colour */
+  border-radius: 50%;               /* makes the box round */
+  touch-action: none;               /* stops the page scrolling while you drag on a phone */
+  user-select: none;                /* stops text being highlighted while you drag */
+  cursor: grab;                     /* the hand cursor */
+}
+
+/* While you are dragging, the cursor changes to a closed hand (script.js adds "dragging") */
+.sa-dial.dragging { cursor: grabbing; }
+
+/* THE HINT under the circle: "drag to time travel". It fades in when the mouse is over the circle,
+   and stops showing once the circle has been used (script.js adds "used").
+   Only on computers with a mouse ("hover: hover"): phones have no hover. */
+.sa-dial::after {
+  content: "drag to time travel";   /* change the hint wording here */
+  position: absolute;
+  top: calc(100% + 8px);            /* just under the circle */
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 11px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s;
+}
+/* on computers with a mouse: the hint shows when hovering the circle, until it has been used once */
+@media (hover: hover) {
+  .sa-dial:not(.used):hover::after { opacity: 0.6; }
+}
+
+/* The words and the time in the middle of the circle */
+.sa-readout {
+  position: absolute;
+  inset: 0;                         /* fills the whole circle */
+  display: flex;
+  flex-direction: column;           /* label on top, time underneath */
+  align-items: center;              /* centred left to right */
+  justify-content: center;          /* centred top to bottom */
+  font-size: 10px;                  /* size of the words inside the circle */
+  font-weight: 700;                 /* BOLD text inside the circle */
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;   /* all digits the same width, so the time does not wobble */
+  pointer-events: none;             /* lets clicks pass through to the circle underneath */
+}
+
+/* THE FIDGET BUBBLE: a hollow bubble that floats inside the circle and gets bumped away by the
+   small solid circle. script.js sets its position. Change the 9px to make it bigger or smaller. */
+.sa-bubble {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;        /* centres the bubble on its position */
+  border: 1px solid var(--ink);     /* hollow: just an outline in the text colour */
+  border-radius: 50%;
+  pointer-events: none;             /* never gets in the way of dragging */
+}
+/* The little wobble when it gets bumped (script.js adds "boop" for a moment) */
+.sa-bubble.boop { animation: boop 0.35s ease-out; }
+@keyframes boop {
+  0%   { scale: 1; }
+  35%  { scale: 1.45 0.7; }
+  70%  { scale: 0.85 1.15; }
+  100% { scale: 1; }
+}
+
+/* The small solid circle you move. Its position is set by script.js, so the left/top below
+   are only the starting spot (top middle). */
+.sa-knob {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 11px;
+  height: 11px;
+  margin: -5.5px 0 0 -5.5px;            /* centres the small circle on its position */
+  border-radius: 50%;
+  background: var(--ink);           /* solid, same colour as the text */
+  cursor: grab;
+}
+
+/* The outline shown when the small circle is selected with the keyboard */
+.sa-knob:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+/* =====================================================
+   THE CAROUSEL (the row of images that moves on its own)
+   ===================================================== */
+
+/* The carousel as a whole: sits below the menu bar with some space above it.
+   "container-type" lets the image boxes size themselves from the carousel's width. */
+.carousel {
+  margin-top: 40px;
+  margin-bottom: 40px;
+  --gap: 16px;                      /* space between the images, change it here */
+  container-type: inline-size;
+}
+
+/* The window you look through: hides whatever is outside the screen.
+   The hand cursor shows that it can be grabbed. script.js does the grabbing. */
+.carousel-track {
+  padding-top: 14px;                /* room above the images, so a picture that pops up is not cut off (see POP-UP below) */
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;                /* stops text being highlighted while you drag */
+  touch-action: pan-y;              /* on a phone: up/down still scrolls the page, sideways drags the carousel */
+}
+
+/* While it is being grabbed, the cursor becomes a closed hand (script.js adds "dragging") */
+.carousel-track.dragging { cursor: grabbing; }
+
+/* The long strip of images. script.js slides this strip sideways with a transform. */
+.carousel-rail {
+  display: flex;                    /* puts the images in one row */
+  gap: var(--gap);
+  width: max-content;               /* as long as all the images together */
+  will-change: transform;           /* tells the browser this moves, so it stays smooth */
+}
+
+/* EACH IMAGE BOX. This is where the "2 in front and a quarter on each side" size comes from:
+   2 full images + 2 quarters = 2.5 images across, plus 3 gaps. So each image is
+   (carousel width minus 3 gaps) divided by 2.5. "cqw" means "a percent of the carousel's width".
+   Each box holds the TITLE on top and the PICTURE underneath, so they always move together. */
+.card {
+  flex: 0 0 calc((100cqw - 3 * var(--gap)) / 2.5);   /* the width described above, never shrinks */
+  display: flex;
+  flex-direction: column;           /* stacks the title above the picture */
+}
+
+/* THE ONE-WORD TITLE, sitting directly above its picture (the <a> comes second in the HTML,
+   so "order: -1" is what lifts it to the top). It is part of the card, so it travels with
+   the carousel. It takes the page colours, so it switches light/dark with the time of day. */
+.card-title {
+  order: -1;                        /* puts the title above the picture */
+  align-self: flex-end;             /* right-hand side. Change to flex-start for the left-hand side */
+  padding: 0 0 8px;                 /* space between the title and the picture */
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: var(--size);           /* same size as the menu text */
+  line-height: 1.2;
+  text-decoration: none;            /* no underline */
+}
+
+/* The picture (or the moving picture) fills the width of its box, cropped (not stretched) to fit.
+   "pointer-events: none" lets you grab and drag the carousel by pressing on a picture. */
+.card img,
+.card video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 2 / 3;              /* tall portrait shape. Try 4 / 5 for a slightly wider box */
+  object-fit: cover;
+  background: rgba(128, 128, 128, 0.25);   /* soft grey shown until the picture loads */
+  pointer-events: none;
+}
+
+/* =====================================================
+   THE POP-UP ON THE IMAGES (when the mouse is over an image or its title)
+   1. The whole box (title and picture together) lifts up a little.
+   2. The title "rolls": the word slides up and out while a copy of the word slides in from below.
+   script.js builds the two copies of each title (class "roll") when the page opens.
+   ===================================================== */
+
+/* HOW HIGH the box lifts, and HOW LONG the move takes. Change these two to taste. */
+.card {
+  --lift: 10px;                                        /* how far up it pops (bigger = higher) */
+  --pop: 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);          /* how long it takes and how it eases (a soft landing) */
+  transition: transform var(--pop);                    /* makes the lift and the drop-back smooth */
+}
+
+/* The title is made of two stacked copies of the word, shown through a one-line window.
+   Only the top copy is visible until the roll happens. */
+.roll {
+  display: block;
+  height: 1.2em;                    /* exactly one line tall: the window the word rolls through */
+  overflow: hidden;                 /* hides the second copy waiting underneath */
+}
+.roll > span {
+  display: block;
+  transition: transform var(--pop); /* makes the roll smooth */
+}
+
+/* THE POP-UP ITSELF. It only applies on devices with a real mouse ("hover: hover"), because on a
+   phone a touch would leave the box stuck in the lifted position. :focus-within does the same
+   for people using the keyboard (Tab). */
+@media (hover: hover) {
+  .card:hover,
+  .card:focus-within {
+    transform: translateY(calc(-1 * var(--lift)));     /* lifts the box up */
+  }
+  .card:hover .roll > span,
+  .card:focus-within .roll > span {
+    transform: translateY(-100%);                      /* rolls: each copy moves up by one line, so the second takes the first's place */
+  }
+}
+
+/* =====================================================
+   CLICKING AN IMAGE: THE ARTICLE ANIMATION
+   (the order and timing of events are in Part 4 of script.js; this file holds how it all looks)
+
+   What you see when an image or its title is clicked:
+   1. The other images squash down to a thin line and disappear, one after another.
+   2. The clicked picture slides out of the row and grows to fill the right side of the page.
+   3. The headline and the two small captions rise into place on the left, and the article text
+      rises in under the picture. The right side can then be scrolled: the picture and text move up
+      together while the headline stays where it is.
+   Going back (Escape key or the browser's Back button) plays it in reverse.
+   ===================================================== */
+
+/* Pictures can be clicked, so the pointing hand shows. (While dragging it is the closed hand.) */
+.card { cursor: pointer; }
+.carousel-track.dragging .card { cursor: grabbing; }
+
+/* While the article is opening, open or closing: the page behind cannot be scrolled and the
+   pictures cannot be clicked again. */
+html.article-open { overflow: hidden; }
+html.article-open .carousel { pointer-events: none; }
+
+/* STEP 1: the images squash to a thin line at the middle of their height, then vanish.
+   ("clip-path: inset(50% 0 50% 0)" means: hide the top half and the bottom half.)
+   script.js gives each image its own wait in --d, so they go one after another.
+   "expand" is the same movement backwards, used when closing the article. */
+@keyframes collapse {
+  from { clip-path: inset(0 0 0 0);       opacity: 1; }
+  85%  { clip-path: inset(49.7% 0 49.7% 0); opacity: 1; }
+  to   { clip-path: inset(50% 0 50% 0);     opacity: 0; }
+}
+@keyframes expand {
+  from { clip-path: inset(50% 0 50% 0);     opacity: 0; }
+  15%  { clip-path: inset(49.7% 0 49.7% 0); opacity: 1; }
+  to   { clip-path: inset(0 0 0 0);         opacity: 1; }
+}
+/* script.js adds "collapse" to every image when an article opens, and "expand" when it closes.
+   0.7s is how long each takes; --d is each image's wait. */
+.card.collapse {
+  animation: collapse 0.7s cubic-bezier(0.7, 0, 0.3, 1) both;
+  animation-delay: var(--d, 0s);
+}
+.card.expand {
+  animation: expand 0.7s cubic-bezier(0.7, 0, 0.3, 1) both;
+  animation-delay: var(--d, 0s);
+}
+
+/* The clicked image: its own picture is hidden (the flying copy takes its place) and its
+   title fades away. */
+.card.chosen img,
+.card.chosen video { visibility: hidden; }
+.card.chosen .card-title { opacity: 0; animation: none; transition: opacity 0.3s; }
+
+/* STEP 2: THE FLYING PICTURE. script.js places it exactly over the clicked picture and then moves
+   it to the "article-slot" box. The 1s and the curve below set how that movement feels. */
+.flyer {
+  position: fixed;
+  z-index: 85;                      /* above the article, below the menu bar (100) */
+  display: none;
+  overflow: hidden;
+  background: rgba(128, 128, 128, 0.25);
+  transition: left 1s cubic-bezier(0.76, 0, 0.24, 1), top 1s cubic-bezier(0.76, 0, 0.24, 1),
+              width 1s cubic-bezier(0.76, 0, 0.24, 1), height 1s cubic-bezier(0.76, 0, 0.24, 1);
+}
+.flyer img,
+.flyer video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;                /* crops to fit, never stretches */
+}
+
+/* THE ARTICLE LAYOUT. It is a full-screen layer under the menu bar. It is invisible and ignores
+   the mouse until the animation needs it. */
+.article {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: none;
+  pointer-events: none;             /* ignores the mouse while the animation plays */
+  outline: none;
+  overflow-y: auto;                 /* THE ARTICLE SCROLLS: the picture and the text move up together */
+  overscroll-behavior: contain;     /* scrolling it never moves the page behind */
+  scrollbar-width: none;            /* no scrollbar, like the reference */
+}
+.article::-webkit-scrollbar { display: none; }
+.article.show { pointer-events: auto; }          /* once everything has landed, it can be scrolled */
+.article-scroll { position: relative; min-height: 100%; }
+html.article-open .article { display: block; }
+
+/* THE MENU BECOMES SEE-THROUGH WHILE AN ARTICLE IS OPEN, so the picture and the text scroll up
+   through it and behind the menu words (like the reference). It stays locked to the top.
+   The page colour comes back when the article closes. */
+html.article-open .menu-bar { background: transparent; }
+
+.article.solid { background: var(--bg); }      /* hides the row of images once they have all vanished */
+
+/* THE BIG PICTURE'S SPOT: the right-hand side of the page, from below the menu to the bottom.
+   (script.js sets --article-top to just under the menu bar.) To make the picture wider or
+   narrower, change the 57vw. */
+.article-slot {
+  margin-left: 57vw;                /* where the picture starts: 57% of the way across the screen */
+  margin-right: 24px;               /* space at the right edge (same as the menu bar) */
+  margin-top: var(--article-top, 188px);
+  height: calc(100vh - var(--article-top, 188px) - 24px);   /* the picture fills the screen below the menu */
+}
+/* The picture inside the slot once it has landed (it scrolls away with the text) */
+.article-slot img,
+.article-slot video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* THE ARTICLE TEXT under the picture. It rises into place after the headline. */
+.article-copy {
+  margin: 24px 24px 0 57vw;
+  padding-bottom: 140px;            /* room at the bottom so the last line can scroll clear of the screen edge */
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: clamp(21px, 2.05vw, 38px);   /* text size of the article. Change the 2.05vw to make it bigger or smaller */
+  line-height: 1.18;
+  letter-spacing: -0.015em;
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.9s ease 0.5s, transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) 0.5s;
+}
+.article-copy p { margin: 0 0 1em; }                         /* one line of space between paragraphs */
+.article.show .article-copy { opacity: 1; transform: none; }  /* once the article opens, the text fades and rises into place */
+
+/* STEP 3: THE TEXT, bottom-left */
+.article-text {
+  position: fixed;                  /* stays in place on the left while the right side scrolls */
+  left: 24px;
+  bottom: 20px;
+  width: calc(57vw - 48px);         /* stays clear of the picture */
+  color: var(--ink);
+  font-family: var(--font);
+  font-weight: 400;
+}
+
+/* THE HEADLINE: big, lowercase, tight. Change the 5.4vw to make it bigger or smaller. */
+.article-title {
+  margin: 0;
+  font-weight: 400;
+  font-size: clamp(40px, 5.4vw, 120px);
+  line-height: 1;
+  letter-spacing: -0.035em;
+  text-transform: lowercase;
+}
+/* Each word sits in its own window ("overflow: hidden") and rises up into view from below it */
+.article-title .w {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: top;
+  padding-bottom: 0.14em;           /* room for the tails of letters like g and p */
+  margin-bottom: -0.14em;
+}
+.article-title .w > span {
+  display: inline-block;
+  transform: translateY(115%);
+  transition: transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition-delay: calc(var(--i, 0) * 70ms);   /* each word a little after the last */
+}
+.article.show .article-title .w > span { transform: none; }
+
+/* THE TWO SMALL CAPTIONS under the headline: small capitals, side by side */
+.article-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 40px;
+  font-size: var(--size);
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+.article-meta .m {
+  display: block;
+  overflow: hidden;                 /* each line rises up from below, like the headline */
+}
+.article-meta .m > span {
+  display: block;
+  transform: translateY(110%);
+  transition: transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition-delay: calc(0.35s + var(--i, 0) * 60ms);   /* after the headline */
+}
+.article.show .article-meta .m > span { transform: none; }
+
+/* On a phone the picture goes on top and the text underneath it */
+@media (max-width: 700px) {
+  .article-slot { margin-left: 24px; height: 52vh; }
+  /* on a phone the headline is not fixed: it sits under the picture and scrolls with the text */
+  .article-text { position: relative; left: auto; bottom: auto; width: auto; margin: 24px 24px 0; }
+  .article-copy { margin-left: 24px; font-size: 21px; }
+}
+
+/* =====================================================
+   THE LOADING ANIMATION
+   (the timing and the order of events are set in the third part of script.js;
+   this file holds how everything looks and moves)
+   ===================================================== */
+
+/* While the page is loading ("is-loading" is put on the page by a tiny script in index.html):
+   - the page cannot be scrolled
+   - the menu bar cannot be clicked until it has finished writing itself in
+   The carousel is NOT hidden any more: it sits underneath the loading screen, which covers it.
+   That way the browser prepares (decodes and draws) all the pictures while the loading animation
+   plays, instead of having to do it all at once at the moment the carousel appears. */
+html.is-loading { overflow: hidden; }
+html.is-loading .menu-bar { pointer-events: none; }
+
+/* THE LOADING SCREEN: a full-screen sheet in the page colour. It sits BELOW the menu bar (z-index 90
+   against the bar's 100), so the menu can write itself in on top of it. */
+.loader {
+  display: none;                    /* hidden normally */
+  position: fixed;
+  inset: 0;                         /* covers the whole screen */
+  z-index: 90;
+  background: var(--bg);
+}
+html.is-loading .loader { display: block; }   /* shown only while loading */
+
+/* THE LOGO CIRCLE: appears as the Corsets by MS logo, the photos then flash inside it behind the
+   lettering, and finally it opens up into the first slide. script.js sets its size, position and picture. */
+.loader-card {
+  position: absolute;
+  opacity: 0;                       /* script.js makes it appear */
+  border-radius: 50%;               /* round, like the logo. script.js squares it off as it grows */
+  overflow: hidden;                 /* keeps the tint and lettering inside the circle */
+  background-color: #2b2b2b;        /* the logo's dark colour */
+  background-size: cover;
+  background-position: center;
+  transform: scale(0.94);           /* starts a touch smaller and settles in as it fades in */
+}
+/* The dark logo colour laid over the photos. script.js lightens it while the photos flash,
+   then removes it as the circle grows. Change the colour to match the logo. */
+.loader-tint {
+  position: absolute;
+  inset: 0;
+  background: #2b2b2b;
+  transition: opacity 0.45s ease;
+}
+/* The MS and "Corsets by" lettering, on top of everything in the circle */
+.loader-logo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transition: opacity 0.35s ease;
+}
+
+/* THE THIN LINE along the bottom of the screen. It fills from left to right as the page loads. */
+.loader-line {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 1px;                      /* how thick the line is */
+  background: var(--ink);           /* same colour as the text, so it works day and night */
+  transform: scaleX(0);             /* starts empty. script.js fills it. */
+  transform-origin: left;
+}
+
+/* THE MENU WRITING ITSELF IN: each line is uncovered from top to bottom while it eases into place.
+   Change 0.9s to make it slower or faster. */
+@keyframes wipe {
+  from { clip-path: inset(0 0 100% 0); transform: translateY(6px); opacity: 0; }
+  to   { clip-path: inset(0 0 0 0);    transform: none;            opacity: 1; }
+}
+
+/* THE TIME CIRCLE APPEARING: it grows in from slightly smaller while fading in */
+@keyframes dialIn {
+  from { opacity: 0; transform: scale(0.7); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* THE MENU WAITS FOR THE CAROUSEL: while the logo is showing, the menu is hidden. It writes itself in
+   at the same moment the carousel arrives ("reveal" is added by script.js at that moment).
+   "animation-delay" is how long each one waits: brand first, then Book appointment, then Shop, then the circle. */
+/* hidden while the loading animation plays */
+html.is-loading .menu-bar a,
+html.is-loading .sa-dial { opacity: 0; }
+/* then each menu link wipes in */
+html.reveal .menu-bar a {
+  animation: wipe 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+html.reveal .brand                         { animation-delay: 0s; }
+html.reveal .menu-bar > :nth-child(2) a    { animation-delay: 0.12s; }
+html.reveal .menu-bar > :nth-child(3) a    { animation-delay: 0.24s; }
+/* the time circle arrives last, 0.3 seconds after the links start */
+html.reveal .sa-dial {
+  animation: dialIn 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) 0.3s both;
+}
+
+/* THE HAND-OVER: when the small card has grown into the first slide, script.js adds "reveal" for
+   about 2 seconds. The other slides slide in from the right, one after another (script.js sets
+   each slide's wait in --d), and the first slide's title writes itself in. ("hero" is the slide on
+   screen that the small card has just turned into.) */
+@keyframes cardIn {
+  from { opacity: 0; transform: translateX(80px); }
+  to   { opacity: 1; transform: none; }
+}
+/* each of the other slides slides in, waiting its turn (--d) */
+html.reveal .card.enter {
+  animation: cardIn 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: var(--d, 0s);
+}
+/* the first slide's title wipes in, 0.1 seconds after */
+html.reveal .card.hero .card-title {
+  animation: wipe 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) 0.1s both;
+}
+
+/* =====================================================
+   PEOPLE WHO PREFER LESS MOTION
+   If someone has "reduce motion" switched on in their device settings,
+   the flicker is turned off and the link dims steadily instead, so they
+   can still tell it is being touched. (script.js also stops the carousel
+   drifting by itself and pauses the moving pictures for these people.)
+   ===================================================== */
+@media (prefers-reduced-motion: reduce) {
+  /* no loading animation at all for these people: the page just appears */
+  .loader { display: none !important; }
+  html.is-loading { overflow: auto; }
+  html.is-loading .menu-bar { pointer-events: auto; }   /* the menu can be clicked straight away */
+  /* the menu and the time circle show straight away */
+  html.is-loading .menu-bar a,
+  html.is-loading .sa-dial { animation: none; opacity: 1; }
+
+  /* no flicker on the links: they dim steadily instead */
+  .menu-bar a:hover,
+  .menu-bar a:focus-visible,
+  .menu-bar a:active,
+  .card-title:hover,
+  .card-title:focus-visible,
+  .card-title:active {
+    animation: none;
+    opacity: 0.55;
+  }
+
+  /* no collapsing, flying or rising for these people: the article just appears */
+  .card.collapse,
+  .card.expand { animation: none; visibility: hidden; }
+  .flyer,
+  .article-copy,
+  .article-title .w > span,
+  .article-meta .m > span { transition: none; }
+
+  /* no pop-up or rolling for these people */
+  .card,
+  .roll > span { transition: none; }
+  .card:hover,
+  .card:focus-within,
+  .card:hover .roll > span,
+  .card:focus-within .roll > span { transform: none; }
+}
+
+/* =====================================================
+   SMALL SCREENS (phones)
+   The menu stays on ONE row, the same 4 columns as on a computer, just packed closer together,
+   and the time circle shrinks so it fits. The pictures get bigger: 1 full picture with a
+   quarter of the next one showing on each side.
+   ===================================================== */
+@media (max-width: 700px) {
+  :root { --dial: 76px; }            /* smaller time circle on a phone. Change 76px to taste */
+
+  .menu-bar {
+    grid-template-columns: repeat(4, auto);   /* each column only as wide as its words */
+    justify-content: space-between;           /* spread the 4 columns evenly across the screen */
+    column-gap: 10px;
+    padding: 16px;
+    white-space: nowrap;                      /* keeps "Book appointment" on one line on small phones */
+  }
+  .sa-readout { font-size: 8.5px; }  /* smaller words inside the smaller circle (still bold) */
+  .sa-knob { width: 10px; height: 10px; margin: -5px 0 0 -5px; }
+
+  .carousel { margin-top: 24px; }
+  /* 1 full picture + 2 quarters = 1.5 pictures across, plus 2 gaps */
+  .card { flex-basis: calc((100cqw - 2 * var(--gap)) / 1.5); }
+}
+
+/* =====================================================
+   THE SHOP PAGE MENU BAR (shop.html)
+   The bar itself uses the same .menu-bar and .tabs rules as the Menu page, so the font, text size
+   and 4 columns always match. Only the fourth column is new.
+   ===================================================== */
+
+/* THE SHOP CONTENT FADES GENTLY IN when the Shop page opens (about a third of a second, no waiting).
+   Change 0.35s to make it slower or faster. */
+.shop-main { animation: softIn 0.35s ease-out both; }
+@keyframes softIn { from { opacity: 0; transform: translateY(8px); } }
+@media (prefers-reduced-motion: reduce) { .shop-main { animation: none; } }
+
+/* COLUMN 4 on the Shop page: the cart button on the right-hand side,
+   where the time circle sits on the Menu page */
+.shop-end {
+  display: flex;
+  justify-content: flex-end;        /* cart on the right-hand side */
+  align-items: flex-start;          /* both line up with the top of the bar */
+  gap: 16px;
+}
+
+/* THE SMALL CART BUTTON: a thin round outline in the text colour */
+.cart {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;                         /* space between the bag icon and the number */
+  padding: 5px 11px;                /* how big the button is (top/bottom, left/right) */
+  border: 0;                        /* no outline around the cart */
+  background: none;
+  color: inherit;                   /* uses --ink, so it matches the menu text */
+  font: inherit;                    /* same font and size as the menu */
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* The bag icon inside the cart button. Change the 14px to make it bigger or smaller. */
+.cart svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+}
+
+/* The cart flickers when touched, the same as the menu links */
+.cart:hover,
+.cart:focus-visible,
+.cart:active {
+  animation: flicker 1.2s linear infinite;
+}
+
+/* People who prefer less motion: the cart dims instead of flickering */
+@media (prefers-reduced-motion: reduce) {
+  .cart:hover,
+  .cart:focus-visible,
+  .cart:active {
+    animation: none;
+    opacity: 0.55;
+  }
+}
+
+/* THE HOMEPAGE MENU IN CAPITALS, matching the Shop: "BOOK APPOINTMENT", "SHOP" */
+.menu-bar .tabs a { text-transform: uppercase; letter-spacing: 0.12em; font-size: 12px; font-weight: 500; }
+@media (max-width: 420px) { .menu-bar .tabs a { letter-spacing: 0.06em; font-size: 11px; } }
+
+
+/* =====================================================
+   THE SHOP OPENING PHOTO
+   Fills the whole screen when the Shop opens. The menu floats over it in white; once the corsets
+   section reaches the top, script.js adds "past-hero" and the menu turns back into the normal bar.
+   ===================================================== */
+
+/* The menu bar on the Shop is pinned to the top of the screen, over the photo.
+   The colour change (white over the photo, normal below it) fades over 0.35 seconds. */
+.has-hero .menu-bar { position: fixed; top: 0; left: 0; right: 0; transition: background-color 0.35s ease, color 0.35s ease; }
+
+/* While the photo is showing: no background behind the menu, and white menu words */
+.has-hero:not(.past-hero) .menu-bar { background: transparent; color: #fff; }
+
+/* The photo area: exactly one screen tall ("svh" accounts for phone address bars) */
+.shop-hero { position: relative; height: 100vh; height: 100svh; overflow: hidden; }
+
+/* The photo itself sits above the blurred side fill (z-index 1) and fills the photo area */
+.shop-hero picture { position: relative; z-index: 1; display: block; height: 100%; }
+
+/* The photo fills the area without stretching ("cover" crops instead), centred */
+.shop-hero img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%; }
+
+/* SCREENS WIDER THAN THE PHOTO: show the WHOLE photo (head to toe, never cropped at the top or bottom)
+   and fill the small gaps at the sides with a soft blurred copy of it */
+.shop-hero-fill { display: none; }                         /* the blurred side fill is hidden on normal screens */
+@media (min-aspect-ratio: 16/10) {                         /* only on screens wider than 16:10 */
+  .shop-hero picture { display: flex; justify-content: center; }   /* centres the photo left to right */
+  .shop-hero img {
+    width: auto; max-width: none; height: 100%;            /* the photo is as tall as the screen, at its natural width */
+    /* the photo's left and right edges dissolve softly into the blur behind it (12% on each side) */
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 12%, #000 88%, transparent 100%);
+            mask-image: linear-gradient(to right, transparent 0, #000 12%, #000 88%, transparent 100%);
+  }
+  .shop-hero-fill {
+    display: block; position: absolute; inset: -40px; z-index: 0;     /* sits behind the photo, a little bigger than the screen */
+    background: url("images/shop-hero-wide-1600.jpg") center / cover no-repeat;   /* the same photo... */
+    filter: blur(34px) brightness(0.9) saturate(0.95);                  /* ...heavily blurred and slightly darker */
+  }
+  /* a cinematic vignette: the far left and right darken, drawing the eye to her */
+  .shop-hero::after {
+    content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+    background: linear-gradient(to right, rgba(0,0,0,0.55) 0, rgba(0,0,0,0) 22%, rgba(0,0,0,0) 78%, rgba(0,0,0,0.55) 100%);
+  }
+}
+
+/* a soft shadow at the top so the white menu stays readable over the roof */
+.shop-hero::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 160px; z-index: 2; pointer-events: none;
+  background: linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0)); }
+
+/* the product area under the photo is at least one screen tall */
+.has-hero .shop-main { min-height: 100vh; }
+
+/* phones (tall screens): the square photo is cropped slightly towards the top, so the whole figure shows */
+@media (max-aspect-ratio: 1/1) { .shop-hero img { object-position: 50% 40%; } }
+
+/* people who prefer less motion: the menu changes colour instantly */
+@media (prefers-reduced-motion: reduce) { .has-hero .menu-bar { transition: none; } }
+
+
+/* =====================================================
+   THE SHOP OPENING PHOTO: THE SLOW ZOOM OUT
+   When the Shop opens, the photo starts slightly zoomed in and gently pulls back to the full shot.
+   Change 1.12 (how far in it starts) and 9s (how long it takes) to taste.
+   ===================================================== */
+@keyframes heroPullBack { from { scale: 1.12; } to { scale: 1; } }   /* from 112% down to 100% */
+.shop-hero picture,
+.shop-hero-fill {                                                      /* the photo and the blurred side fill move together */
+  animation: heroPullBack 9s cubic-bezier(0.25, 0.1, 0.25, 1) both;   /* 9 seconds, easing gently to a stop */
+  will-change: scale;                                                  /* tells the browser it moves, so it stays smooth */
+}
+/* people who prefer less motion: no zoom, the photo is simply still */
+@media (prefers-reduced-motion: reduce) {
+  .shop-hero picture, .shop-hero-fill { animation: none; }
+}
+
+
+/* =====================================================
+   THE CAPTION AND CALL TO ACTION on the Shop photo, bottom left
+   ===================================================== */
+/* the block of text in the bottom-left corner: lines stacked, white, small spaced capitals,
+   with a soft shadow behind the letters so they read over the photo */
+.hero-caption {
+  position: absolute; left: 24px; bottom: 26px; z-index: 3;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px; text-align: left;
+  color: #fff; text-transform: uppercase; letter-spacing: 0.12em; text-shadow: 0 1px 10px rgba(0, 0, 0, 0.35);
+}
+.hc-main { font-size: 15px; font-weight: 600; }               /* "2026 CORSETS COLLECTION" */
+.hc-sub  { font-size: 11px; font-weight: 500; opacity: 0.85; } /* "MADE BY HAND IN SOUTH AFRICA", smaller and softer */
+
+/* THE CALL TO ACTION: "SHOP CORSETS" in large bold type, with the arrow in a white circle.
+   On hover the circle fills white and the arrow nudges down. */
+.hc-cta {
+  margin-top: 18px; display: flex; align-items: center; gap: 14px;          /* space above, and between the words and the circle */
+  color: #fff; text-decoration: none; font-size: 22px; font-weight: 700; letter-spacing: 0.02em;
+}
+.hc-cta span[aria-hidden] {                                                /* the round arrow button */
+  display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: 50%;
+  border: 1px solid #fff; font-size: 16px; text-shadow: none;
+  transition: background-color 0.3s ease, color 0.3s ease, transform 0.3s ease;
+}
+/* hover (or keyboard focus): the circle fills white, the arrow turns dark and drops 3 pixels */
+.hc-cta:hover span[aria-hidden], .hc-cta:focus-visible span[aria-hidden] { background: #fff; color: #111; transform: translateY(3px); }
+
+/* a soft shadow at the bottom of the photo so the white text stays readable */
+.shop-hero .hero-shade { position: absolute; left: 0; right: 0; bottom: 0; height: 40%; z-index: 2; pointer-events: none;
+  background: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0.35)); }
+
+/* phones: the caption sits closer to the edges, and "SHOP CORSETS" and its circle are a little smaller */
+@media (max-width: 700px) { .hero-caption { left: 16px; bottom: 20px; } .hc-cta { font-size: 19px; } .hc-cta span[aria-hidden] { width: 40px; height: 40px; } }
+
+
+/* =====================================================
+   THE CORSETS SECTION
+   The photo stays in place while the corsets section slides up over it like a sheet,
+   with a soft shadow on its top edge. It opens with one centred statement line, then the corsets.
+   ===================================================== */
+/* the photo stays stuck to the top of the screen while the page scrolls over it */
+.shop-hero { position: sticky; top: 0; z-index: 0; }
+
+/* THE SHEET: in front of the photo, in the page colour, with a soft shadow along its top edge.
+   Change the 0.28 to make the shadow darker or lighter. */
+.rise-sheet {
+  position: relative; z-index: 5; background: var(--bg);
+  box-shadow: 0 -24px 60px rgba(0, 0, 0, 0.28);
+  padding: 0 24px 120px; min-height: 0 !important;      /* space at the sides and the bottom */
+}
+
+/* THE STATEMENT: one line, centred, with space above and below it */
+.cs-statement { display: grid; justify-items: center; text-align: center; padding: 150px 0 140px; }
+/* the size of the statement: grows with the screen, between 30 and 52 pixels; 18ch keeps it to about two lines */
+.cs-statement p { margin: 0; max-width: 18ch; font-size: clamp(30px, 3.6vw, 52px); line-height: 1.1; letter-spacing: -0.015em; }
+
+/* THE CORSETS GRID: 3 columns; 72px between rows, 14px between columns */
+.cs-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 72px 14px; }
+.cs-card { color: inherit; text-decoration: none; display: block; }      /* each corset: no link underline, page text colour */
+/* the photo box: tall (3:4); a faint tint shows while the photo loads */
+.cs-img { display: block; aspect-ratio: 3 / 4; overflow: hidden; background: color-mix(in srgb, var(--ink) 6%, var(--bg)); }
+/* the photo fills its box without stretching; zooming is smoothed over 0.8 seconds */
+.cs-img img { width: 100%; height: 100%; object-fit: cover; display: block; transition: scale 0.8s cubic-bezier(0.2,0.7,0.2,1); }
+/* THE HOVER: the same pop-up as the homepage carousel (see THE POP-UP ON THE IMAGES).
+   The whole corset (photo, name and price) lifts up a little, and the name and price "roll":
+   each slides up and out while a copy slides in from below. script.js builds the two copies.
+   Computers with a mouse only; :focus-visible does the same for people using the keyboard (Tab). */
+.cs-card {
+  --lift: 10px;                                        /* how far up it pops (the same as the carousel) */
+  --pop: 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);          /* how long it takes and how it eases (the same as the carousel) */
+  transition: transform var(--pop);                    /* makes the lift and the drop-back smooth */
+}
+@media (hover: hover) {
+  .cs-card:hover, .cs-card:focus-visible { transform: translateY(calc(-1 * var(--lift))); }   /* lifts it up */
+  .cs-card:hover .roll > span, .cs-card:focus-visible .roll > span { transform: translateY(-100%); }   /* rolls the words */
+}
+/* people who prefer less motion: no lifting or rolling */
+@media (prefers-reduced-motion: reduce) {
+  .cs-card, .cs-card .roll > span { transition: none; }
+  .cs-card:hover, .cs-card:focus-visible, .cs-card:hover .roll > span, .cs-card:focus-visible .roll > span { transform: none; }
+}
+/* the name and price under each photo: small spaced capitals */
+.cs-meta { display: flex; justify-content: space-between; gap: 12px; margin-top: 14px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em; }
+
+/* phones: narrower edges, less space around the statement, 2 columns, and the price under the name */
+@media (max-width: 700px) {
+  .rise-sheet { padding: 0 16px 80px; }
+  .cs-statement { padding: 88px 0 80px; }
+  .cs-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 44px 10px; }
+  .cs-meta { flex-direction: column; gap: 4px; font-size: 11px; }
+}
+
+
+/* =====================================================
+   THE CART: A CORSET ON A HANGER
+   1. Empty: just the outline. Once something is in the bag, the corset fills in.
+   2. When a piece is added, the corset sways on its hook (and gives a small swing on hover).
+   3. The number of pieces hangs off the hanger on a little swing tag.
+   ===================================================== */
+.cart-hanger { position: relative; padding: 0; gap: 0; }                 /* no padding: just the icon (the swing tag is placed relative to it) */
+.hanger-icon { width: 26px; height: 32px; display: block; overflow: visible; }   /* the size of the hanger icon */
+.cart.cart-hanger svg { width: 26px; height: 32px; }                    /* overrides the old bag icon's 14px size */
+.hanger-swing { transform-origin: 20px 3px; }                           /* it swings from the top of the hook */
+.hanger-icon .corset { fill: transparent; transition: fill 0.5s ease; }          /* 1. EMPTY: just the outline */
+.cart-hanger.has-items .corset { fill: currentColor; }                          /*    FULL: filled in */
+.cart-hanger.sway .hanger-swing { animation: sway 1.4s cubic-bezier(0.3, 0, 0.3, 1); }   /* 2. it swings when a piece is added */
+@media (hover: hover) { .cart-hanger:hover .hanger-swing { animation: swayHover 0.9s ease; } }   /* a small swing on hover */
+/* the swing: out to 14 degrees, back to -10, then smaller and smaller until it settles */
+@keyframes sway { 0% { rotate: 0deg; } 18% { rotate: 14deg; } 38% { rotate: -10deg; } 58% { rotate: 6deg; } 78% { rotate: -3deg; } 100% { rotate: 0deg; } }
+/* the gentler hover swing */
+@keyframes swayHover { 0% { rotate: 0deg; } 35% { rotate: 6deg; } 70% { rotate: -4deg; } 100% { rotate: 0deg; } }
+
+/* 3. THE SWING TAG with the count: a small tag shape (pointed on the left) hanging off the hanger.
+   Hidden until something is in the bag; it then drops in with a little bounce. */
+.swing-tag {
+  position: absolute; left: calc(100% - 4px); top: 9px;            /* just off the right arm of the hanger */
+  padding: 2px 5px 2px 8px; font-size: 10px; font-weight: 700; line-height: 1.2;
+  background: currentColor; border-radius: 1px 3px 3px 1px;        /* the tag is the same colour as the icon */
+  clip-path: polygon(5px 0, 100% 0, 100% 100%, 5px 100%, 0 50%);  /* the pointed tag shape */
+  opacity: 0; transform: rotate(-10deg) translateY(-4px); transform-origin: left center;   /* hidden to start */
+  transition: opacity 0.35s ease, transform 0.5s cubic-bezier(0.3, 1.6, 0.5, 1);         /* the bouncy drop-in */
+}
+.swing-tag span { color: var(--bg); }                                   /* the number, in the page colour, so it shows on the tag */
+.has-hero:not(.past-hero) .swing-tag span { color: #2b2b2b; }           /* over the photo the tag is white, so the number is charcoal */
+.cart-hanger.has-items .swing-tag { opacity: 1; transform: rotate(14deg); }   /* shown, hanging at a slight angle */
+/* the punched hole in the tag */
+.swing-tag::before { content: ""; position: absolute; left: 3px; top: 50%; width: 3px; height: 3px; margin-top: -1.5px; border-radius: 50%; background: var(--bg); }
+.has-hero:not(.past-hero) .swing-tag::before { background: rgba(0,0,0,0.5); }  /* the hole over the photo */
+.cart-hanger:hover, .cart-hanger:focus-visible, .cart-hanger:active { animation: none; }   /* no flicker on the hanger (it swings instead) */
+
+
+/* =====================================================
+   OVALS: the portfolio pieces, the article picture and the Shop corsets are all tall ovals,
+   echoing the round logo and the time circle
+   ===================================================== */
+.card img, .card video { border-radius: 50%; }            /* the tall 2:3 photo becomes an oval */
+.card-title { align-self: center; padding-bottom: 14px; }  /* titles centred over the oval */
+/* ovals sized so the whole oval fits on screen, with a little more space between them */
+.carousel { --gap: 40px; }                                 /* the space between the ovals */
+/* each oval's width: either 2.5 across the screen, or as wide as fits the screen height, whichever is smaller */
+.card { flex-basis: min(calc((100cqw - 3 * var(--gap)) / 2.5), calc((100vh - 270px) / 1.5)); }
+/* phones: smaller gaps, and 1.5 ovals across */
+@media (max-width: 700px) { .carousel { --gap: 18px; } .card { flex-basis: min(calc((100cqw - 2 * var(--gap)) / 1.5), calc((100svh - 230px) / 1.5)); } }
+
+/* the article picture: the flying picture and its landing spot stay oval */
+.flyer { border-radius: 50%; }                                  /* the flying picture stays an oval */
+.article-slot {
+  --h: calc(100vh - var(--article-top, 188px) - 24px);         /* the oval is as tall as the space under the menu */
+  height: var(--h); width: calc(var(--h) / 1.5);               /* a tall oval, same shape as the carousel */
+  margin-left: calc(57vw + (43vw - 24px - var(--h) / 1.5) / 2); /* centred in the right-hand side */
+}
+.article-slot img, .article-slot video { border-radius: 50%; }  /* the landed picture is oval too */
+/* phones: the oval is 52% of the screen tall and centred above the headline */
+@media (max-width: 700px) {
+  .article-slot { --h: 52vh; width: calc(52vh / 1.5); margin-left: auto; margin-right: auto; }
+}
+
+/* the corsets in the Shop: oval photos, with the name and price centred underneath */
+.cs-img { border-radius: 50%; background: none; }
+.cs-meta { justify-content: center; gap: 18px; }
+@media (max-width: 700px) { .cs-meta { align-items: center; } }
+
+
+/* =====================================================
+   THE SHOP COLOURS: the logo's dusty pink and charcoal. These are fixed on the Shop page
+   (it does not follow the time of day). Change the two colours here to recolour the whole Shop.
+   ===================================================== */
+body.palette-logo {
+  --bg: #c4b4b5;          /* the logo's dusty pink: the page background */
+  --ink: #2b2b2b;         /* the logo's charcoal: all the text and icons */
+  background: var(--bg); color: var(--ink);
+}
+body.palette-logo .rise-sheet { background: var(--bg); }   /* the corsets section in the same pink */
+
+
+/* =====================================================
+   THE PRODUCT VIEW (Shop): clicking a piece opens it like the homepage articles.
+   1. The other pieces squash to a thin line and vanish, one after another.
+   2. The clicked oval flies to the big spot on the right.
+   3. The name, price, description, sizes and "Add to bag" rise in on the left.
+   Closing (Back to women, Escape, or the browser's Back button) plays it backwards.
+   The order and timing are in script.js under THE PRODUCT VIEW.
+   ===================================================== */
+/* step 1 for the Shop pieces: the same squash as the homepage images */
+.cs-card.collapse { animation: collapse 0.7s cubic-bezier(0.7, 0, 0.3, 1) both; animation-delay: var(--d, 0s); }
+.cs-card.expand   { animation: expand 0.7s cubic-bezier(0.7, 0, 0.3, 1) both; animation-delay: var(--d, 0s); }
+/* the clicked piece: its own photo hides (the flying copy takes its place) and its name fades */
+.cs-card.chosen .cs-img img { visibility: hidden; }
+.cs-card.chosen .cs-meta { opacity: 0; transition: opacity 0.3s; }
+
+/* the product layer: full screen, under the menu bar (so the hanger stays visible), hidden until used */
+.product {
+  position: fixed; inset: 0; z-index: 70; display: none;
+  pointer-events: none;                 /* ignores the mouse while the animation plays */
+  overflow-y: auto; overscroll-behavior: contain; outline: none;   /* scrolls by itself on small screens */
+}
+html.product-open { overflow: hidden; }                  /* the page behind cannot scroll */
+html.product-open .product { display: block; }
+.product.solid { background: var(--bg); }               /* covers the grid once the pieces have vanished */
+.product.show { pointer-events: auto; }                  /* once everything has landed, it can be used */
+
+/* THE BIG OVAL: as tall as the space under the menu, centred in the right-hand side (like the articles) */
+.product-slot {
+  --h: calc(100vh - var(--product-top, 96px) - 24px);
+  height: var(--h); width: calc(var(--h) / 1.5);
+  margin-top: var(--product-top, 96px);
+  margin-left: calc(57vw + (43vw - 24px - var(--h) / 1.5) / 2);
+}
+.product-slot img { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+
+/* THE DETAILS: bottom left, clear of the oval */
+.product-info { position: fixed; left: 24px; bottom: 24px; width: min(calc(57vw - 72px), 560px); }
+
+/* "Back to women": small spaced capitals; it dims on hover */
+.pd-close {
+  all: unset; cursor: pointer; display: inline-block; margin-bottom: 28px;
+  font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em;
+  opacity: 0; transition: opacity 0.6s ease 0.4s;
+}
+.product.show .pd-close { opacity: 1; }
+.pd-close:hover, .pd-close:focus-visible { opacity: 0.55; }
+
+/* THE NAME: big, lowercase and tight like the article headlines; each word rises in turn (--i) */
+.pd-title { margin: 0 0 18px; font-weight: 400; font-size: clamp(40px, 4.6vw, 96px); line-height: 1; letter-spacing: -0.035em; text-transform: lowercase; }
+.pd-title .w { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: 0.06em; }   /* the window each word rises through */
+.pd-title .w > span { display: inline-block; transform: translateY(110%); transition: transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1); transition-delay: calc(var(--i, 0) * 0.07s); }
+.product.show .pd-title .w > span { transform: none; }
+
+/* EVERYTHING UNDER THE NAME fades and rises in a moment later */
+.pd-rest { opacity: 0; transform: translateY(20px); transition: opacity 0.8s ease 0.35s, transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) 0.35s; }
+.product.show .pd-rest { opacity: 1; transform: none; }
+.pd-price { margin: 0 0 14px; font-size: 15px; letter-spacing: 0.08em; }                 /* the price */
+.pd-desc  { margin: 0 0 26px; max-width: 46ch; font-size: 15px; line-height: 1.5; opacity: 0.85; }   /* the description */
+.pd-label { margin: 0 0 10px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; opacity: 0.7; }   /* "SIZE" */
+
+/* THE SIZES: rounded pills (echoing the ovals). The chosen one fills in charcoal. */
+.pd-sizes { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 22px; }
+.pd-size {
+  all: unset; cursor: pointer; box-sizing: border-box; min-width: 54px; padding: 10px 16px; text-align: center;
+  border: 1px solid var(--ink); border-radius: 999px; font-size: 13px; letter-spacing: 0.06em;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+.pd-size:hover { background: color-mix(in srgb, var(--ink) 10%, transparent); }   /* a faint fill on hover */
+.pd-size:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }      /* keyboard outline */
+.pd-size[aria-pressed="true"] { background: var(--ink); color: var(--bg); }          /* the chosen size */
+
+/* ADD TO BAG: a wide charcoal pill. If no size is chosen it gives a little shake. */
+.pd-add {
+  all: unset; cursor: pointer; box-sizing: border-box; display: block; width: 100%; max-width: 420px;
+  padding: 18px 24px; border-radius: 999px; background: var(--ink); color: var(--bg); text-align: center;
+  font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.14em;
+  transition: opacity 0.25s ease;
+}
+.pd-add:hover { opacity: 0.85; }
+.pd-add:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.pd-add.nudge { animation: nudge 0.45s ease; }
+@keyframes nudge { 20% { translate: -6px 0; } 40% { translate: 6px 0; } 60% { translate: -4px 0; } 80% { translate: 3px 0; } }
+.pd-note { margin: 14px 0 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; opacity: 0.6; }   /* the small line under the button */
+
+/* phones: the oval sits on top, centred, and the details follow underneath (the layer scrolls) */
+@media (max-width: 700px) {
+  .product-slot { --h: 52vh; width: calc(52vh / 1.5); margin-left: auto; margin-right: auto; }
+  .product-info { position: static; width: auto; margin: 24px 16px 60px; }
+  .pd-add { max-width: none; }
+}
+/* people who prefer less motion: no rising, everything simply appears */
+@media (prefers-reduced-motion: reduce) {
+  .cs-card.collapse, .cs-card.expand { animation: none; visibility: hidden; }
+  .pd-title .w > span, .pd-rest, .pd-close { transition: none; }
+}
+
+
+/* =====================================================
+   THE SHOP MENU IN ONE LINE: the logo, Men, Women, Miscellaneous and the cart are spaced out
+   evenly across the bar, with the same gap between each of the five.
+   ===================================================== */
+.menu-bar:has(.tabs-row) { grid-template-columns: repeat(5, auto); }   /* 5 columns instead of 4 */
+.tabs-row { display: contents; }                     /* lets Men, Women and Miscellaneous each take their own column */
+.menu-bar:has(.tabs-row) .shop-end { grid-column: 5; }   /* the cart moves to the 5th (last) column */
