@@ -1154,3 +1154,40 @@ html.product-open .product { display: block; }
 .menu-bar:has(.tabs-row) { grid-template-columns: repeat(5, auto); }   /* 5 columns instead of 4 */
 .tabs-row { display: contents; }                     /* lets Men, Women and Miscellaneous each take their own column */
 .menu-bar:has(.tabs-row) .shop-end { grid-column: 5; }   /* the cart moves to the 5th (last) column */
+
+/* THE TAB YOU ARE ON (Men or Women) gets a thin underline */
+.tabs-row a[aria-current] { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 5px; }
+.cs-grid[hidden] { display: none; }   /* the department that is not showing stays hidden */
+
+/* MEN HAS NO OPENING PHOTO: while Men is showing ("dept-men", added by script.js), the women's corset photo
+   is hidden and the page opens straight onto the statement and the men's pieces, with the normal menu bar */
+body.no-hero .shop-hero { display: none; }          /* Men and Miscellaneous: no opening photo */
+body.no-hero .rise-sheet { box-shadow: none; }      /* no shadow edge, since nothing sits behind it */
+
+/* the statement line fades out and back in when it changes between Women and Men */
+#cs-line { transition: opacity 0.45s ease; }
+#cs-line.swap { opacity: 0; }
+
+/* =====================================================
+   THE HANGER ON MEN: while Men is showing ("dept-men"), the corset slips off the hanger and a blazer
+   slides on in its place (and back again on Women). Outline when the bag is empty, filled in once something is added.
+   ===================================================== */
+.hanger-icon .corset, .hanger-icon .blazer { transition: opacity 0.35s ease, translate 0.45s cubic-bezier(0.3, 0.7, 0.3, 1); }
+.hanger-icon .blazer { opacity: 0; translate: 0 -7px; }                                 /* Women: the blazer is hidden above the hanger */
+body.dept-men .hanger-icon .corset { opacity: 0; translate: 0 9px; transition-delay: 0s; }   /* Men: the corset slips off downwards... */
+body.dept-men .hanger-icon .blazer { opacity: 1; translate: 0 0; transition-delay: 0.25s; }  /* ...and the blazer slides on from above */
+.hanger-icon .corset { transition-delay: 0.25s; }                                       /* (going back to Women: the corset slides on after the blazer leaves) */
+.hanger-icon .blazer-body { fill: transparent; transition: fill 0.5s ease; }            /* EMPTY BAG: just the outline */
+.cart-hanger.has-items .blazer-body { fill: currentColor; }                             /* FULL: filled in */
+.cart-hanger.has-items .lapel { stroke: var(--bg); }                                    /* the lapels show as thin lines cut into the filled blazer */
+.cart-hanger.has-items circle.lapel { fill: var(--bg); }
+
+/* =====================================================
+   THE HANGER ON MISCELLANEOUS: while the accessories are showing ("dept-misc"), the corset slips off and a
+   beaded bracelet with a diamond charm slides onto the hanger instead. Outline when the bag is empty, filled once something is added.
+   ===================================================== */
+.hanger-icon .bracelet { opacity: 0; translate: 0 -7px; transition: opacity 0.35s ease, translate 0.45s cubic-bezier(0.3, 0.7, 0.3, 1); }
+body.dept-misc .hanger-icon .corset { opacity: 0; translate: 0 9px; transition-delay: 0s; }    /* the corset slips off... */
+body.dept-misc .hanger-icon .bracelet { opacity: 1; translate: 0 0; transition-delay: 0.25s; } /* ...and the bracelet slides on */
+.hanger-icon .br-bead { fill: transparent; transition: fill 0.5s ease; }                        /* EMPTY BAG: outlined beads */
+.cart-hanger.has-items .br-bead { fill: currentColor; }                                          /* FULL: solid beads */

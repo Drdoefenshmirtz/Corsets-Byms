@@ -1189,7 +1189,10 @@ window.CorsetsBag = (function () {
   /* ---------- SETTINGS ---------- */
   var SIZES = {
     corset: ["XXS-XS", "S-M", "L-XL"],                 // sizes for corsets and tops
-    pants: [24, 26, 28, 30, 32, 34, 36]                // sizes for trousers
+    pants: [24, 26, 28, 30, 32, 34, 36],               // sizes for trousers
+    men: ["S", "M", "L", "XL", "XXL"],                 // sizes for men's tops and jackets
+    menpants: [28, 30, 32, 34, 36, 38],                // waist sizes for men's trousers
+    onesize: ["One size"]                              // accessories: one size only (chosen for you)
   };
   var COLLAPSE_WAIT = 750;   // how long after the click the photo starts to fly (the pieces squash first)
   var GROW_TIME = 1000;      // how long the flight takes (the same as the "1s" in .flyer in style.css)
@@ -1198,7 +1201,8 @@ window.CorsetsBag = (function () {
 
   /* ---------- THE PIECES OF THE PAGE THIS PART CONTROLS ---------- */
   var html = document.documentElement;
-  var grid = document.querySelector(".cs-grid");                 // the grid of pieces
+  var grid = document.querySelector(".cs-grid");                 // the grid on show (Women to start; changes when Men is clicked)
+  var grids = document.querySelectorAll(".cs-grid");             // all the grids: Women and Men
   var layer = document.getElementById("product");               // the product layer
   var slot = document.getElementById("product-slot");           // where the big oval lands
   var flyer = document.getElementById("p-flyer");               // the copy of the photo that flies
@@ -1236,6 +1240,9 @@ window.CorsetsBag = (function () {
     });
     priceBox.textContent = piece.price;
     descBox.textContent = card.getAttribute("data-desc") || "";
+    // "Made by hand in South Africa" only shows on pieces MS makes, not on the accessories (Miscellaneous)
+    var note = document.querySelector(".pd-note"), g = card.closest(".cs-grid");
+    if (note) note.hidden = !!(g && g.getAttribute("data-dept") === "misc");
     // the size pills: corset sizes, or trouser sizes if data-type="pants"
     size = null; sizeBox.textContent = "";
     (SIZES[card.getAttribute("data-type")] || SIZES.corset).forEach(function (s) {
@@ -1248,6 +1255,7 @@ window.CorsetsBag = (function () {
       });
       sizeBox.appendChild(b);
     });
+    if (sizeBox.children.length === 1) sizeBox.children[0].click();   // only one size (accessories): it is chosen for you
     addBtn.textContent = "Add to bag";
   }
 
@@ -1255,6 +1263,9 @@ window.CorsetsBag = (function () {
   function open(card) {
     if (busy || isOpen) return;          // already opening or open: ignore the click
     busy = true; isOpen = true; chosen = card;
+    grid = card.closest(".cs-grid");                        // the grid this piece is in
+    var back = document.getElementById("pd-back-dept");     // "Back to women" or "Back to men"
+    if (back) back.textContent = grid.getAttribute("data-label") || grid.getAttribute("data-dept") || "women";
     img = card.querySelector(".cs-img img");
 
     // 1. put a copy of the photo exactly over the clicked one
@@ -1351,20 +1362,90 @@ window.CorsetsBag = (function () {
   });
 
   /* ---------- WHAT OPENS AND CLOSES IT ---------- */
-  grid.addEventListener("click", function (e) {             // clicking a piece opens it
-    var card = e.target.closest(".cs-card");
-    if (!card) return;
-    e.preventDefault(); open(card);
+  Array.prototype.forEach.call(grids, function (g) {
+    g.addEventListener("click", function (e) {              // clicking a piece opens it
+      var card = e.target.closest(".cs-card");
+      if (!card) return;
+      e.preventDefault(); open(card);
+    });
   });
   closeBtn.addEventListener("click", requestClose);         // "Back to women"
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") requestClose(); });   // the Escape key
   window.addEventListener("popstate", function () { if (isOpen) { pushed = false; close(); } });   // the browser's Back button
 
-  /* ---------- "WOMEN" IN THE MENU glides down to the women's pieces ---------- */
-  var women = document.getElementById("tab-women"), hero = document.getElementById("shop-hero");
-  if (women && hero) women.addEventListener("click", function (e) {
-    e.preventDefault();
-    if (isOpen) { requestClose(); return; }                 // if a piece is open, Women takes you back to them
-    window.scrollTo({ top: hero.offsetHeight, behavior: reduceMotion ? "auto" : "smooth" });
+  /* ---------- MEN AND WOMEN IN THE MENU ----------
+     Clicking one glides down to the pieces. If the other department is showing, its pieces squash away
+     and the new ones unfold in their place (the same squash as opening a piece). The tab you are on is underlined. */
+  var hero = document.getElementById("shop-hero");
+  var tabs = document.querySelectorAll(".menu-bar a[data-dept]");
+  var switching = false;
+  function showDept(name) {
+    var next = document.getElementById("dept-" + name);
+    if (!next || switching) return;
+    Array.prototype.forEach.call(tabs, function (t) {        // underline the tab you are on
+      if (t.getAttribute("data-dept") === name) t.setAttribute("aria-current", "true"); else t.removeAttribute("aria-current");
+    });
+    var current = Array.prototype.filter.call(grids, function (g) { return !g.hidden; })[0];
+    if (current === next) return;                            // already showing
+    switching = true;
+    var line = document.getElementById("cs-line");           // the statement line above the pieces
+    if (line) line.classList.add("swap");                    // it fades out while the pieces swap...
+    var out = current ? Array.prototype.slice.call(current.querySelectorAll(".cs-card")) : [];
+    out.forEach(function (c, i) { c.style.setProperty("--d", (i % 3 * 0.08).toFixed(2) + "s"); c.classList.add("collapse"); });   // 1. fold the old pieces away
+    setTimeout(function () {
+      out.forEach(function (c) { c.classList.remove("collapse"); c.style.removeProperty("--d"); });
+      if (current) current.hidden = true;                    // 2. swap the grids
+      next.hidden = false;
+      if (line) { line.textContent = line.getAttribute("data-" + name) || line.textContent; line.classList.remove("swap"); }   // ...and fades back in with the new words
+      var inn = Array.prototype.slice.call(next.querySelectorAll(".cs-card"));
+      inn.forEach(function (c, i) { c.style.setProperty("--d", (i % 3 * 0.08).toFixed(2) + "s"); c.classList.add("expand"); });   // 3. unfold the new ones
+      setTimeout(function () {
+        inn.forEach(function (c) { c.classList.remove("expand"); c.style.removeProperty("--d"); });
+        switching = false;
+      }, reduceMotion ? 0 : 950);
+    }, reduceMotion || !out.length ? 0 : 900);
+  }
+  // MEN AND MISCELLANEOUS HAVE NO OPENING PHOTO: while either is showing, the women's corset photo at the top
+  // is hidden ("no-hero" on the page, see style.css), so they open straight onto their statement and pieces.
+  // "dept-men" also swaps the corset on the hanger for the bomber jacket.
+  function setDeptMode(name) {
+    var wasNoHero = document.body.classList.contains("no-hero");
+    var wasGarment = document.body.classList.contains("dept-men") ? "men" : document.body.classList.contains("dept-misc") ? "misc" : "women";
+    var noHero = name !== "women";
+    document.body.classList.toggle("no-hero", noHero);
+    document.body.classList.toggle("dept-men", name === "men");     // the bomber jacket on the hanger
+    document.body.classList.toggle("dept-misc", name === "misc");   // the bracelet on the hanger
+    if (noHero || wasNoHero) window.scrollTo(0, 0);                        // Men/Misc: top of the pieces. Back to Women: top, on the model's photo
+    try { history.replaceState(history.state, "", noHero ? "#" + name : location.pathname + location.search); } catch (e) {}   // shop.html#men / #misc open directly
+    window.dispatchEvent(new Event("scroll"));                             // lets the menu switch to the normal bar straight away
+    var cart = document.getElementById("cart");                            // the hanger swings when what hangs on it changes
+    if (cart && wasGarment !== name) { cart.classList.remove("sway"); void cart.offsetWidth; cart.classList.add("sway"); }
+  }
+  Array.prototype.forEach.call(tabs, function (t) {
+    t.addEventListener("click", function (e) {
+      e.preventDefault();
+      if (isOpen) { requestClose(); return; }                // if a piece is open, the tab first takes you back to the pieces
+      var name = t.getAttribute("data-dept");
+      if (name !== "women" || document.body.classList.contains("no-hero")) {   // switching to or from Men/Misc: no glide, the page jumps into place
+        setDeptMode(name);
+        showDept(name);
+        return;
+      }
+      var top = hero ? hero.offsetHeight : 0;
+      var far = Math.abs(window.scrollY - top) > 40;
+      window.scrollTo({ top: top, behavior: reduceMotion ? "auto" : "smooth" });   // Women: glide down to the pieces...
+      setTimeout(function () { showDept(name); }, far && !reduceMotion ? 700 : 0);   // ...then swap
+    });
   });
+  // opening the page as shop.html#men or shop.html#misc goes straight there (handy for links from the homepage later)
+  var start = location.hash.slice(1);
+  if ((start === "men" || start === "misc") && document.getElementById("dept-" + start)) {
+    setDeptMode(start);
+    Array.prototype.forEach.call(grids, function (g) { g.hidden = g.getAttribute("data-dept") !== start; });
+    var ln = document.getElementById("cs-line");
+    if (ln) ln.textContent = ln.getAttribute("data-" + start);   // that department's statement line
+    Array.prototype.forEach.call(tabs, function (t) {
+      if (t.getAttribute("data-dept") === start) t.setAttribute("aria-current", "true"); else t.removeAttribute("aria-current");
+    });
+  }
 })();
