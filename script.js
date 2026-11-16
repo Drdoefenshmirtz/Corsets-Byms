@@ -1439,6 +1439,7 @@ window.CorsetsBag = (function () {
   });
   // opening the page as shop.html#men or shop.html#misc goes straight there (handy for links from the homepage later)
   var start = location.hash.slice(1);
+  if (start === "women" && hero) setTimeout(function () { window.scrollTo(0, hero.offsetHeight); }, 60);   // shop.html#women lands on the women's pieces
   if ((start === "men" || start === "misc") && document.getElementById("dept-" + start)) {
     setDeptMode(start);
     Array.prototype.forEach.call(grids, function (g) { g.hidden = g.getAttribute("data-dept") !== start; });
@@ -1448,4 +1449,197 @@ window.CorsetsBag = (function () {
       if (t.getAttribute("data-dept") === start) t.setAttribute("aria-current", "true"); else t.removeAttribute("aria-current");
     });
   }
+})();
+
+
+/* =====================================================
+   THE APPOINTMENTS PANEL (homepage): "Book appointment" opens it. See the panel in index.html and
+   its look in style.css. THE QUESTIONS for each tab are listed below: change the words, add or remove
+   options, and the panel rebuilds itself.
+   ===================================================== */
+(function () {
+  var appt = document.getElementById("appt");
+  var opener = document.getElementById("open-appt");
+  if (!appt || !opener) return;                                  // not on the homepage: do nothing
+
+  /* ---------- THE TABS AND THEIR QUESTIONS ----------
+     type "pick"  = tick boxes (tick as many as you like)
+     type "pick1" = tick boxes where only ONE can be ticked (ticking one unticks the others)
+     type "date"  = a calendar to choose a date  type "text" = a line to type on
+     type "long"  = a bigger box for a note      required: true = must be filled in (marked *) */
+  var TABS = {
+    fitting: {                                                   // ONE tab for fittings AND made-for-you (bespoke) pieces
+      title: "book your appointment",
+      side: "For a fitting, an alteration or a piece made just for you.\n\nNow booking January\nI reply within 48 hours",
+      lede: "Tell me about the occasion\nand I\u2019ll get in touch",
+      questions: [
+        { label: "I\u2019d like", type: "pick", options: ["A fitting for a collection piece", "A piece made just for me", "Bridal", "Menswear", "Alterations", "Not sure yet"] },
+        { label: "Appointment", type: "pick1", options: ["In-studio fitting", "Virtual consultation"] },
+        { label: "Budget", type: "pick1", options: ["R 2,000 \u2013 R 5,000", "R 5,000 \u2013 R 10,000", "R 10,000 \u2013 R 20,000", "R 20,000+", "Let\u2019s chat first"] },
+        { label: "Name", type: "text", required: true, placeholder: "Your name" },
+        { label: "Email", type: "text", required: true, placeholder: "you@example.com", input: "email" },
+        { label: "Phone", type: "text", placeholder: "+27", input: "tel" },
+        { label: "Preferred date", type: "date" },
+        { label: "Note", type: "long", placeholder: "The occasion, colours, inspiration, anything I should know" }
+      ]
+    },
+    email: {                                                     // the CONTACT tab: email and WhatsApp
+      title: "get in touch",
+      side: "Prefer to write or chat? I’ll reply within 48 hours.",
+      email: "hello@corsetsbyms.co.za",                            // PLACEHOLDER: change to MS's real email address
+      whatsapp: "27000000000"                                      // PLACEHOLDER: MS's WhatsApp number, country code first, no + or spaces (e.g. 27821234567)
+    }
+  };
+
+  var html = document.documentElement;
+  var panel = appt.querySelector(".appt-panel");
+  var form = document.getElementById("appt-form");
+  var thanks = document.getElementById("appt-thanks");
+  var titleBox = document.getElementById("appt-title");
+  var side = appt.querySelector(".appt-side");
+  var tabs = appt.querySelectorAll(".appt-tab");
+  var line = appt.querySelector(".appt-line");
+  var current = "fitting";
+  var lastFocus = null;
+
+  // the rolling hover on the tabs and Close: each word is put in twice, stacked (like the carousel titles)
+  Array.prototype.forEach.call(appt.querySelectorAll(".appt-tab, .appt-close"), function (b) {
+    var word = b.textContent;
+    b.innerHTML = '<span class="roll"><span></span><span aria-hidden="true"></span></span>';
+    b.querySelectorAll(".roll > span")[0].textContent = word;
+    b.querySelectorAll(".roll > span")[1].textContent = word;
+  });
+
+  // the headline: each word in its own window so the words rise in turn
+  function setTitle(text) {
+    titleBox.textContent = "";
+    text.split(" ").forEach(function (word, i, all) {
+      var w = document.createElement("span"); w.className = "w";
+      var inner = document.createElement("span"); inner.textContent = word; inner.style.setProperty("--i", i);
+      w.appendChild(inner); titleBox.appendChild(w);
+      if (i < all.length - 1) titleBox.appendChild(document.createTextNode(" "));
+    });
+  }
+
+  // builds the questions for a tab
+  function build(name) {
+    var t = TABS[name];
+    setTitle(t.title);
+    side.textContent = t.side;
+    form.textContent = "";
+    var r = 0;
+    function row() { var d = document.createElement("div"); d.className = "appt-row"; d.style.setProperty("--r", r++); form.appendChild(d); return d; }
+    if (t.email) {                                               // the Contact tab: email and WhatsApp, one row each
+      [["Email", "mailto:" + t.email, t.email],
+       ["WhatsApp", "https://wa.me/" + t.whatsapp + "?text=" + encodeURIComponent("Hi MS, I’d like to ask about an appointment."), "Chat on WhatsApp"]
+      ].forEach(function (c, k) {
+        var er = row();
+        var lab = document.createElement("div"); lab.className = "appt-q";
+        lab.innerHTML = '<span class="n"></span><span class="t"></span>';
+        lab.querySelector(".n").textContent = "0" + (k + 1) + ".";
+        lab.querySelector(".t").textContent = c[0];
+        var a = document.createElement("a"); a.className = "appt-mail"; a.href = c[1]; a.textContent = c[2];
+        if (k === 1) { a.target = "_blank"; a.rel = "noopener"; }   // WhatsApp opens in a new tab (or the app on phones)
+        er.appendChild(lab); er.appendChild(a);
+      });
+      return;
+    }
+    t.questions.forEach(function (q, i) {
+      var d = row();
+      if (i === 0) { var l = document.createElement("p"); l.className = "lede"; l.textContent = t.lede; l.style.whiteSpace = "pre-line"; d.appendChild(l); }
+      var label = document.createElement("div"); label.className = "appt-q";
+      label.innerHTML = '<span class="n"></span><span class="t"></span>';
+      label.querySelector(".n").textContent = (i + 1 < 10 ? "0" : "") + (i + 1) + ".";
+      label.querySelector(".t").textContent = q.label + (q.required ? "*" : "");
+      d.appendChild(label);
+      var id = "appt-" + name + "-" + i;
+      if (q.type === "pick" || q.type === "pick1") {
+        var box = document.createElement("div"); box.className = "appt-opts";
+        q.options.forEach(function (o) {
+          var lab = document.createElement("label"); lab.className = "appt-opt";
+          var cb = document.createElement("input"); cb.type = q.type === "pick1" ? "radio" : "checkbox";   // pick1: only one can be ticked
+          cb.name = name + "-" + q.label; cb.value = o;
+          var sp = document.createElement("span"); sp.textContent = o;
+          lab.appendChild(cb); lab.appendChild(sp); box.appendChild(lab);
+        });
+        d.appendChild(box);
+      } else {
+        var f = document.createElement("div"); f.className = "appt-field";
+        var inp = document.createElement(q.type === "long" ? "textarea" : "input");
+        if (q.type === "date") {                                   // a calendar, starting from today (no dates in the past)
+          inp.type = "date"; inp.min = new Date().toISOString().slice(0, 10); f.classList.add("is-date");
+        } else if (q.type !== "long") inp.type = q.input || "text";
+        inp.id = id; inp.name = q.label; inp.placeholder = q.placeholder || "";
+        if (q.required) { inp.required = true; d.dataset.required = "1"; }
+        label.querySelector(".t").setAttribute("id", id + "-l"); inp.setAttribute("aria-labelledby", id + "-l");
+        f.appendChild(inp); d.appendChild(f);
+      }
+    });
+    var s = row(); s.classList.add("appt-send-row");
+    s.innerHTML = '<div><button type="submit" class="appt-send"><span class="roll"><span>Send</span><span aria-hidden="true">Send</span></span></button></div>';
+  }
+
+  // moves the line under the tab you are on
+  function moveLine() {
+    var on = appt.querySelector(".appt-tab.is-active");
+    if (!on) return;
+    line.style.setProperty("--x", on.offsetLeft + "px");
+    line.style.setProperty("--w", on.offsetWidth);
+  }
+
+  // switching tabs: the questions fade out, the line slides, the new questions fade in
+  function switchTo(name) {
+    if (name === current) return;
+    current = name;
+    Array.prototype.forEach.call(tabs, function (t) {
+      var on = t.getAttribute("data-tab") === name;
+      t.classList.toggle("is-active", on); t.setAttribute("aria-selected", String(on));
+    });
+    moveLine();
+    thanks.hidden = true; form.hidden = false;
+    form.classList.add("is-swapping");
+    setTimeout(function () { build(name); form.classList.remove("is-swapping"); }, 300);
+  }
+
+  function open(e) {
+    if (e) e.preventDefault();
+    lastFocus = document.activeElement;
+    build(current); thanks.hidden = true; form.hidden = false;
+    appt.setAttribute("aria-hidden", "false");
+    void appt.offsetWidth;                                       // lets the browser place everything before it moves
+    html.classList.add("appt-open");                             // style.css: dim the page, slide the panel up, words rise
+    requestAnimationFrame(moveLine);
+    panel.scrollTop = 0;
+    setTimeout(function () { panel.focus({ preventScroll: true }); }, 50);
+  }
+  function close() {
+    if (!html.classList.contains("appt-open")) return;
+    html.classList.remove("appt-open");                          // the panel slides back down and the page brightens
+    appt.setAttribute("aria-hidden", "true");
+    if (location.hash === "#book") try { history.replaceState(null, "", location.pathname + location.search); } catch (err) {}
+    if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true });
+  }
+
+  // SENDING: checks the required answers, then shows the thank-you (nothing is sent anywhere yet)
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var ok = true;
+    Array.prototype.forEach.call(form.querySelectorAll(".appt-row[data-required]"), function (d) {
+      var inp = d.querySelector("input, textarea");
+      var bad = !inp.value.trim() || (inp.type === "email" && inp.value.indexOf("@") < 1);
+      d.classList.toggle("is-missing", bad);
+      if (bad && ok) { ok = false; inp.focus(); }
+    });
+    if (!ok) return;
+    form.hidden = true; thanks.hidden = false;
+    setTitle("thank you");
+    panel.scrollTo({ top: 0, behavior: "smooth" });
+  });
+
+  opener.addEventListener("click", open);
+  Array.prototype.forEach.call(tabs, function (t) { t.addEventListener("click", function () { switchTo(t.getAttribute("data-tab")); }); });
+  Array.prototype.forEach.call(appt.querySelectorAll("[data-close]"), function (c) { c.addEventListener("click", close); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
+  window.addEventListener("resize", moveLine);
+  if (location.hash === "#book") setTimeout(open, 400);          // index.html#book opens it straight away
 })();

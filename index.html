@@ -72,13 +72,20 @@
 
     <!-- COLUMN 2: "Book appointment". It also doubles as the way to get in touch. -->
     <nav class="tabs" aria-label="Primary">
-      <a href="/book-appointment">Book appointment</a>
+      <a href="#book" id="open-appt">Book appointment</a>
     </nav>
 
     <!-- COLUMN 3: "Shop", on the same top line as "Book appointment".
          ("Menu" and "Contact" were removed to keep the bar clean: the brand name takes people home.) -->
-    <nav class="tabs" aria-label="Shop">
+    <nav class="tabs shop-hover" aria-label="Shop">
       <a href="shop.html">Shop</a>
+      <!-- THE SHOP DEPARTMENTS: pop up under "Shop" when the mouse is over it (computers only; see
+           THE SHOP POP-UP in style.css). Each one opens the Shop straight on that department. -->
+      <div class="shop-sub">
+        <a href="shop.html#men" style="--i:0">Men</a>
+        <a href="shop.html#women" style="--i:1">Women</a>
+        <a href="shop.html#misc" style="--i:2">Miscellaneous</a>
+      </div>
     </nav>
 
     <!-- COLUMN 4: the time circle. script.js controls everything inside it.
@@ -223,6 +230,48 @@
 
   <!-- script.js controls the behaviour: the clock, dragging, background and text colour,
        and the carousel. It sits at the bottom so the page above is already loaded when it runs. -->
+  <!-- =====================================================
+       THE APPOINTMENTS PANEL: opens when "Book appointment" is clicked (inspired by brandonyasin.com).
+       The page dims and this charcoal panel slides up from the bottom. Two tabs along the top:
+       Appointment (fittings and made-for-you pieces) and Contact (email and WhatsApp). script.js (THE APPOINTMENTS PANEL) builds the questions for each tab
+       from a simple list, so the questions are easy to change there. The look is in style.css.
+       NOTE: the form does not send anywhere yet; it shows a thank-you. Sending (email or WhatsApp) comes with the back end.
+       ===================================================== -->
+  <div class="appt" id="appt" aria-hidden="true">
+    <!-- the dark veil over the page; clicking it closes the panel -->
+    <div class="appt-shade" data-close></div>
+    <div class="appt-panel" role="dialog" aria-modal="true" aria-labelledby="appt-title" tabindex="-1">
+      <div class="appt-grain" aria-hidden="true"></div>   <!-- a fine paper grain over the panel -->
+      <div class="appt-inner">
+
+        <!-- THE TABS and CLOSE. The thin line under the tabs slides to the one you are on. -->
+        <div class="appt-head">
+          <div class="appt-tabs" role="tablist">
+            <button type="button" class="appt-tab is-active" data-tab="fitting" role="tab" aria-selected="true">Appointment</button>
+            <button type="button" class="appt-tab" data-tab="email" role="tab" aria-selected="false">Contact</button>
+            <span class="appt-line" aria-hidden="true"></span>
+          </div>
+          <button type="button" class="appt-close" data-close>Close</button>
+        </div>
+
+        <!-- THE HEADLINE (each word rises in) and the small note on the right -->
+        <div class="appt-intro">
+          <h2 class="appt-title" id="appt-title"></h2>
+          <p class="appt-side"></p>
+        </div>
+
+        <!-- THE QUESTIONS: built by script.js for the tab you are on -->
+        <form class="appt-form" id="appt-form" novalidate></form>
+
+        <!-- THE THANK YOU: replaces the questions once the form is sent -->
+        <div class="appt-thanks" id="appt-thanks" hidden>
+          <p class="appt-thanks-copy">I have your details and will be in touch within 48 hours to confirm your appointment.</p>
+          <button type="button" class="appt-send" data-close><span class="roll"><span>Back to the collection</span><span aria-hidden="true">Back to the collection</span></span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="script.js"></script>
 </body>
 </html>
