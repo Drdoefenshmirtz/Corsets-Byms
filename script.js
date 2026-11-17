@@ -575,9 +575,28 @@
   track.addEventListener("focusin", function () { paused = true; });
   track.addEventListener("focusout", function () { paused = false; });
 
+  /* ---------- SCROLL TO STEER ----------
+     Scrolling DOWN pushes the row to the LEFT, scrolling UP pushes it to the RIGHT. The faster you scroll,
+     the faster it goes (up to MAX_SPEED). When you stop, it eases back to its normal drift, like after a fling.
+     Change WHEEL_PUSH to make each scroll push harder (bigger) or softer (smaller). */
+  var WHEEL_PUSH = 3.4;
+  window.addEventListener("wheel", function (e) {
+    var html = document.documentElement;
+    if (locked || html.classList.contains("is-loading") || html.classList.contains("appt-open") || html.classList.contains("article-open")) return;
+    var unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? window.innerHeight : 1;   // lines or pages: turned into pixels
+    var d = (Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX) * unit;    // up/down wheel, or a sideways trackpad swipe
+    d = Math.max(-80, Math.min(80, d));   // TRACKPADS AND MICE FEEL THE SAME: one big mouse click or many tiny trackpad steps, each push is capped
+    velocity = Math.max(-MAX_SPEED, Math.min(MAX_SPEED, velocity + d * WHEEL_PUSH));    // down = left (+), up = right (-)
+    paused = false;
+    // the homepage does not scroll up and down, so the wheel only steers the row
+    if (html.scrollHeight <= window.innerHeight + 2) e.preventDefault();
+  }, { passive: false });
+
   /* ---------- THE MOVEMENT: runs on every screen refresh ---------- */
 
   var previous = performance.now();
+  var SQUEEZE_MOST = 0.75;   // how narrow the ovals get at top speed (0.75 = 75% of their width; 1 = no squeeze)
+  var squeeze = 1;           // how narrow they are right now (1 = full width)
 
   function frame(now) {
     var dt = Math.min((now - previous) / 1000, 0.05);   // time since the last frame (capped so a hidden tab does not cause a jump)
@@ -601,6 +620,14 @@
 
     // Slide the strip. A negative number moves it to the left.
     rail.style.transform = "translate3d(" + (-pos) + "px, 0, 0)";
+
+    // THE SQUEEZE: the faster the row moves (above its normal drift), the narrower the ovals get, down to
+    // SQUEEZE_MOST of their width at top speed. They ease back to full width as it slows (style.css uses --squeeze).
+    var fast = reduceMotion ? 0 : Math.max(0, Math.min(1, (Math.abs(velocity) - SPEED) / (MAX_SPEED * 0.6)));   // "reduce motion": no squeeze
+    squeeze += ((1 - (1 - SQUEEZE_MOST) * fast) - squeeze) * (1 - Math.exp(-10 * dt));   // smoothed, so it never jerks
+    rail.style.setProperty("--squeeze", squeeze.toFixed(3));
+    // while it is moving fast, the hover effects (lift and title roll) wait, so titles do not flick past the mouse
+    rail.classList.toggle("is-fast", Math.abs(velocity) > SPEED * 6);
 
     requestAnimationFrame(frame);
   }
@@ -1145,17 +1172,42 @@
    the corset fills in, sways on its hook, and the count appears on the swing tag.
    ===================================================== */
 window.CorsetsBag = (function () {
-  var cart = document.getElementById("cart"), count = document.getElementById("cart-count"), n = 0;   // n = pieces in the bag
-  var items = [];                                                // what is in the bag: name, size and price of each piece
-  function add(qty, item) {
-    if (!cart) return;                                           // no cart on this page: do nothing
-    if (item) items.push(item);                                  // remembers the piece (for the bag page, when it is built)
-    n += qty || 1; count.textContent = n;                        // adds the pieces and writes the number on the swing tag
-    cart.classList.toggle("has-items", n > 0);                   // fills in the corset and shows the tag
-    cart.setAttribute("aria-label", "Bag, " + n + (n === 1 ? " item" : " items"));   // what screen readers say
-    cart.classList.remove("sway"); void cart.offsetWidth; cart.classList.add("sway");  // restarts the swing
+  // THE BAG'S CONTENTS are remembered in this browser (localStorage), so they survive refreshing or leaving the Shop.
+  var KEY = "corsets-bag";
+  var cart = document.getElementById("cart"), count = document.getElementById("cart-count");
+  var items = [];                                                // each piece: { name, size, price, img, qty, dept }
+  try { items = JSON.parse(localStorage.getItem(KEY) || "[]") || []; } catch (e) { items = []; }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(items)); } catch (e) {} }
+  // THE DEPARTMENT ON SHOW: each department has its own bag on the surface (its own hanger count)
+  function dept() { var b = document.body.classList; return b.contains("dept-men") ? "men" : b.contains("dept-misc") ? "misc" : "women"; }
+  function deptOf(it) { return it.dept || "women"; }             // pieces added before departments existed count as Women
+  function total(d) { return items.reduce(function (n, it) { return n + (!d || deptOf(it) === d ? it.qty : 0); }, 0); }   // pieces in one department, or in all
+  // shows the count on the swing tag and fills the hanger's garment (sway = give the hanger a swing)
+  function refresh(sway) {
+    if (!cart) return;
+    var n = total(dept()); count.textContent = n;               // the hanger shows only THIS department's pieces
+    if (cart.parentElement) cart.parentElement.classList.toggle("has-bag", total() > 0);   // the hanger only appears once something is in the bag
+    cart.classList.toggle("has-items", n > 0);
+    cart.setAttribute("aria-label", "Bag, " + n + (n === 1 ? " item" : " items"));
+    window.dispatchEvent(new Event("corsets:bag"));              // tells the bag panel (and the small hangers) to redraw
+    if (sway) window.dispatchEvent(new Event("corsets:sway"));   // a piece was added: the hangers swing (see THE SWING CASCADE)
   }
-  return { add: add, items: function () { return items.slice(); } };
+  // adds a piece: the same piece in the same size just goes up by one
+  function add(qty, item) {
+    if (!cart) return;
+    item = item || { name: "Piece", size: "", price: "" };
+    var same = items.filter(function (it) { return it.name === item.name && it.size === item.size; })[0];
+    if (same) same.qty += qty || 1;
+    else items.push({ name: item.name, size: item.size, price: item.price, img: item.img || "", qty: qty || 1, dept: item.dept || dept() });
+    save(); refresh(true);
+  }
+  function setQty(i, q) { if (!items[i]) return; items[i].qty = q; if (q <= 0) items.splice(i, 1); save(); refresh(false); }
+  // CLEAR BAG empties everything (and hands back what was in it, so "Undo" can put it back)
+  function clear() { var old = items.slice(); items = []; save(); refresh(false); return old; }
+  function restore(list) { items = (list || []).slice(); save(); refresh(false); }
+  refresh(false);                                                // shows what was already in the bag when the page opens
+  window.addEventListener("corsets:dept", function () { refresh(false); });   // switching tabs: show that department's count
+  return { add: add, setQty: setQty, clear: clear, restore: restore, dept: dept, deptOf: deptOf, items: function () { return items.slice(); } };
 })();
 
 /* =====================================================
@@ -1219,6 +1271,7 @@ window.CorsetsBag = (function () {
   var k = reduceMotion ? 0 : 1;          // 0 = no waiting at all (for people who prefer less motion)
   var chosen = null, img = null, affected = [], isOpen = false, busy = false, pushed = false;
   var piece = null;                      // the open piece: { name, price }
+  var openToken = 0;                     // changes each time a piece opens or is closed at once
   var size = null;                       // the size chosen
 
   // the text of a name or price (the rolling hover puts each in twice, so read the first copy)
@@ -1263,6 +1316,7 @@ window.CorsetsBag = (function () {
   function open(card) {
     if (busy || isOpen) return;          // already opening or open: ignore the click
     busy = true; isOpen = true; chosen = card;
+    var tok = ++openToken;                                  // if the piece is closed mid-opening, the steps below stop
     grid = card.closest(".cs-grid");                        // the grid this piece is in
     var back = document.getElementById("pd-back-dept");     // "Back to women" or "Back to men"
     if (back) back.textContent = grid.getAttribute("data-label") || grid.getAttribute("data-dept") || "women";
@@ -1298,11 +1352,13 @@ window.CorsetsBag = (function () {
 
     // 3. after the pieces have gone, the photo flies to the big spot
     setTimeout(function () {
+      if (tok !== openToken) return;                        // closed by a menu tab in the meantime: stop here
       layer.classList.add("solid");                         // the page colour covers the grid
       flyer.style.transition = "";                          // use the movement set in style.css
       placeFlyer(slot.getBoundingClientRect());
       // 4. when it has landed, the photo moves into the product view and the details rise in
       setTimeout(function () {
+        if (tok !== openToken) return;
         slot.textContent = ""; slot.appendChild(img.cloneNode(true));
         flyer.style.display = "none";
         layer.classList.add("show");
@@ -1343,6 +1399,21 @@ window.CorsetsBag = (function () {
     }, wait);
   }
 
+  // CLOSING AT ONCE (no animation): used when a menu tab is clicked while a piece is open,
+  // so the tab works on the first click instead of only closing the piece
+  function closeNow() {
+    if (!isOpen) return;
+    openToken++;                                            // cancels any opening steps still waiting
+    flyer.style.display = "none"; flyer.textContent = ""; slot.textContent = "";
+    layer.classList.remove("show", "solid");
+    layer.setAttribute("aria-hidden", "true");
+    html.classList.remove("product-open");
+    affected.forEach(function (c) { c.classList.remove("collapse", "expand"); c.style.removeProperty("--d"); });
+    if (chosen) chosen.classList.remove("chosen");
+    affected = []; chosen = null; isOpen = false; busy = false;
+    if (pushed) { pushed = false; try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {} }
+  }
+
   // closing from the page itself: go "back" in the history, which closes it (keeps Back working)
   function requestClose() {
     if (!isOpen || busy) return;
@@ -1356,7 +1427,7 @@ window.CorsetsBag = (function () {
       addBtn.classList.remove("nudge"); void addBtn.offsetWidth; addBtn.classList.add("nudge");
       return;
     }
-    if (window.CorsetsBag) window.CorsetsBag.add(1, { name: piece.name, size: size, price: piece.price });   // the hanger fills and sways
+    if (window.CorsetsBag) window.CorsetsBag.add(1, { name: piece.name, size: size, price: piece.price, img: img ? img.getAttribute("src") : "", dept: grid ? grid.getAttribute("data-dept") : "" });   // the hanger fills and sways
     addBtn.textContent = "Added to bag \u2713";
     setTimeout(function () { if (isOpen) addBtn.textContent = "Add to bag"; }, 1800);   // back to normal after a moment
   });
@@ -1379,31 +1450,28 @@ window.CorsetsBag = (function () {
   var hero = document.getElementById("shop-hero");
   var tabs = document.querySelectorAll(".menu-bar a[data-dept]");
   var switching = false;
+  // SWITCHING DEPARTMENTS happens IMMEDIATELY: the old pieces disappear at once and the new ones unfold
+  // in their place. Clicking another tab mid-switch simply jumps to that one (nothing is ever ignored).
+  var unfoldTimer = null;
   function showDept(name) {
     var next = document.getElementById("dept-" + name);
-    if (!next || switching) return;
+    if (!next) return;
     Array.prototype.forEach.call(tabs, function (t) {        // underline the tab you are on
       if (t.getAttribute("data-dept") === name) t.setAttribute("aria-current", "true"); else t.removeAttribute("aria-current");
     });
-    var current = Array.prototype.filter.call(grids, function (g) { return !g.hidden; })[0];
-    if (current === next) return;                            // already showing
-    switching = true;
     var line = document.getElementById("cs-line");           // the statement line above the pieces
-    if (line) line.classList.add("swap");                    // it fades out while the pieces swap...
-    var out = current ? Array.prototype.slice.call(current.querySelectorAll(".cs-card")) : [];
-    out.forEach(function (c, i) { c.style.setProperty("--d", (i % 3 * 0.08).toFixed(2) + "s"); c.classList.add("collapse"); });   // 1. fold the old pieces away
-    setTimeout(function () {
-      out.forEach(function (c) { c.classList.remove("collapse"); c.style.removeProperty("--d"); });
-      if (current) current.hidden = true;                    // 2. swap the grids
-      next.hidden = false;
-      if (line) { line.textContent = line.getAttribute("data-" + name) || line.textContent; line.classList.remove("swap"); }   // ...and fades back in with the new words
-      var inn = Array.prototype.slice.call(next.querySelectorAll(".cs-card"));
-      inn.forEach(function (c, i) { c.style.setProperty("--d", (i % 3 * 0.08).toFixed(2) + "s"); c.classList.add("expand"); });   // 3. unfold the new ones
-      setTimeout(function () {
-        inn.forEach(function (c) { c.classList.remove("expand"); c.style.removeProperty("--d"); });
-        switching = false;
-      }, reduceMotion ? 0 : 950);
-    }, reduceMotion || !out.length ? 0 : 900);
+    if (line) line.textContent = line.getAttribute("data-" + name) || line.textContent;
+    if (!next.hidden) return;                                // already showing
+    clearTimeout(unfoldTimer);
+    Array.prototype.forEach.call(grids, function (g) {       // 1. every other department's pieces go at once
+      g.hidden = g !== next;
+      Array.prototype.forEach.call(g.querySelectorAll(".cs-card"), function (c) { c.classList.remove("expand", "collapse"); c.style.removeProperty("--d"); });
+    });
+    var inn = Array.prototype.slice.call(next.querySelectorAll(".cs-card"));
+    inn.forEach(function (c, i) { c.style.setProperty("--d", (i % 3 * 0.06).toFixed(2) + "s"); c.classList.add("expand"); });   // 2. the new ones unfold
+    unfoldTimer = setTimeout(function () {
+      inn.forEach(function (c) { c.classList.remove("expand"); c.style.removeProperty("--d"); });
+    }, reduceMotion ? 0 : 850);
   }
   // MEN AND MISCELLANEOUS HAVE NO OPENING PHOTO: while either is showing, the women's corset photo at the top
   // is hidden ("no-hero" on the page, see style.css), so they open straight onto their statement and pieces.
@@ -1418,13 +1486,14 @@ window.CorsetsBag = (function () {
     if (noHero || wasNoHero) window.scrollTo(0, 0);                        // Men/Misc: top of the pieces. Back to Women: top, on the model's photo
     try { history.replaceState(history.state, "", noHero ? "#" + name : location.pathname + location.search); } catch (e) {}   // shop.html#men / #misc open directly
     window.dispatchEvent(new Event("scroll"));                             // lets the menu switch to the normal bar straight away
+    window.dispatchEvent(new Event("corsets:dept"));                       // the hanger switches to this department's bag count
     var cart = document.getElementById("cart");                            // the hanger swings when what hangs on it changes
-    if (cart && wasGarment !== name) { cart.classList.remove("sway"); void cart.offsetWidth; cart.classList.add("sway"); }
+    if (cart && wasGarment !== name) { cart.style.setProperty("--sd", "0s"); cart.classList.remove("sway"); void cart.offsetWidth; cart.classList.add("sway"); }
   }
   Array.prototype.forEach.call(tabs, function (t) {
     t.addEventListener("click", function (e) {
       e.preventDefault();
-      if (isOpen) { requestClose(); return; }                // if a piece is open, the tab first takes you back to the pieces
+      if (isOpen) closeNow();                                // a piece is open: it closes at once and the tab carries on (one click)
       var name = t.getAttribute("data-dept");
       if (name !== "women" || document.body.classList.contains("no-hero")) {   // switching to or from Men/Misc: no glide, the page jumps into place
         setDeptMode(name);
@@ -1434,7 +1503,7 @@ window.CorsetsBag = (function () {
       var top = hero ? hero.offsetHeight : 0;
       var far = Math.abs(window.scrollY - top) > 40;
       window.scrollTo({ top: top, behavior: reduceMotion ? "auto" : "smooth" });   // Women: glide down to the pieces...
-      setTimeout(function () { showDept(name); }, far && !reduceMotion ? 700 : 0);   // ...then swap
+      showDept(name);                                        // ...and the pieces swap straight away
     });
   });
   // opening the page as shop.html#men or shop.html#misc goes straight there (handy for links from the homepage later)
@@ -1642,4 +1711,211 @@ window.CorsetsBag = (function () {
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") close(); });
   window.addEventListener("resize", moveLine);
   if (location.hash === "#book") setTimeout(open, 400);          // index.html#book opens it straight away
+})();
+
+
+/* =====================================================
+   THE BAG PANEL (Shop): clicking the hanger opens it. A charcoal panel slides in from the right
+   (the same feel as the appointments panel), listing each piece with its oval photo, size, price and
+   quantity, then the total. Change the WhatsApp number at the top to MS's real one.
+   ===================================================== */
+(function () {
+  var WHATSAPP = "27000000000";   // PLACEHOLDER: MS's WhatsApp number, country code first, no + or spaces
+
+  var cart = document.getElementById("cart"), bag = document.getElementById("bag");
+  if (!cart || !bag || !window.CorsetsBag) return;               // not on the Shop page: do nothing
+  var html = document.documentElement;
+  var list = document.getElementById("bag-list");
+  var foot = document.getElementById("bag-foot");
+  var totalBox = document.getElementById("bag-total");
+  var countBox = document.getElementById("bag-count");
+  var orderBtn = document.getElementById("bag-order");
+
+  // "R 2,450" -> 2450, and back again
+  function num(p) { return parseInt(String(p).replace(/[^0-9]/g, ""), 10) || 0; }
+  function rand(n) { return "R " + n.toLocaleString("en-US"); }
+
+  var NAMES = { women: "Women", men: "Men", misc: "Miscellaneous" };
+  var shown = {};                                                // which other departments have been opened up in the bag
+
+  // one piece's row in the bag
+  function makeRow(it, i, r) {
+    var row = document.createElement("div"); row.className = "bag-item"; row.style.setProperty("--r", r);
+    row.innerHTML =
+      '<span class="bag-img"><img alt=""></span>' +
+      '<div class="bag-info"><p class="bag-name"></p><p class="bag-size"></p>' +
+      '<div class="bag-qty"><button type="button" class="bag-step" data-d="-1" aria-label="One less">−</button>' +
+      '<span class="bag-n"></span><button type="button" class="bag-step" data-d="1" aria-label="One more">+</button></div></div>' +
+      '<div class="bag-right"><p class="bag-price"></p><button type="button" class="bag-remove">Remove</button></div>';
+    if (it.img) row.querySelector("img").src = it.img; else row.querySelector("img").remove();   // no photo: just the soft oval
+    row.querySelector(".bag-name").textContent = it.name;
+    row.querySelector(".bag-size").textContent = !it.size ? "" : it.size === "One size" ? "One size" : "Size " + it.size;
+    row.querySelector(".bag-n").textContent = it.qty;
+    row.querySelector(".bag-price").textContent = rand(num(it.price) * it.qty);
+    Array.prototype.forEach.call(row.querySelectorAll(".bag-step"), function (b) {
+      b.addEventListener("click", function () {
+        var q = it.qty + (+b.getAttribute("data-d"));
+        if (q <= 0) removeRow(row, i); else window.CorsetsBag.setQty(i, q);
+      });
+    });
+    row.querySelector(".bag-remove").addEventListener("click", function () { removeRow(row, i); });
+    return row;
+  }
+
+  // draws the bag: THIS department's pieces first, then a small line for each other department
+  // ("+ 2 pieces from Miscellaneous") that opens up to show them. The total includes everything.
+  function draw() {
+    var B = window.CorsetsBag, items = B.items(), here = B.dept();
+    var pieces = items.reduce(function (n, it) { return n + it.qty; }, 0);
+    countBox.textContent = pieces + (pieces === 1 ? " piece" : " pieces") + " in all";
+    list.textContent = "";
+    bag.classList.toggle("is-empty", !items.length);
+    var r = 0;
+    var mine = items.map(function (it, i) { return [it, i]; }).filter(function (p) { return B.deptOf(p[0]) === here; });
+    var head = document.createElement("p"); head.className = "bag-dept";
+    head.textContent = NAMES[here] + (mine.length ? "" : " — nothing added yet");
+    list.appendChild(head);
+    mine.forEach(function (p) { list.appendChild(makeRow(p[0], p[1], r++)); });
+    ["women", "men", "misc"].forEach(function (d) {
+      if (d === here) return;
+      var theirs = items.map(function (it, i) { return [it, i]; }).filter(function (p) { return B.deptOf(p[0]) === d; });
+      if (!theirs.length) return;
+      var n = theirs.reduce(function (s, p) { return s + p[0].qty; }, 0);
+      var more = document.createElement("button"); more.type = "button"; more.className = "bag-more";
+      more.style.setProperty("--r", r++);
+      more.setAttribute("aria-expanded", String(!!shown[d]));
+      more.textContent = (shown[d] ? "− " : "+ ") + n + (n === 1 ? " piece" : " pieces") + " from " + NAMES[d];
+      more.addEventListener("click", function () { shown[d] = !shown[d]; draw(); });
+      list.appendChild(more);
+      if (shown[d]) theirs.forEach(function (p) { var row = makeRow(p[0], p[1], r++); row.classList.add("is-other"); list.appendChild(row); });
+    });
+    var sum = items.reduce(function (n, it) { return n + num(it.price) * it.qty; }, 0);
+    totalBox.textContent = rand(sum);
+  }
+
+  // removing a piece: it squashes to a thin line (like the carousel pictures), then the list redraws
+  function removeRow(row, i) {
+    row.classList.add("is-leaving");
+    setTimeout(function () { window.CorsetsBag.setQty(i, 0); }, 550);
+  }
+
+  // CLEAR BAG: every piece squashes away, then a small "Bag cleared · Undo" line shows for 6 seconds
+  var clearBtn = document.getElementById("bag-clear"), undoBox = document.getElementById("bag-undo");
+  var saved = null, undoTimer = null;
+  if (clearBtn && undoBox) {
+    clearBtn.addEventListener("click", function () {
+      Array.prototype.forEach.call(list.querySelectorAll(".bag-item, .bag-more"), function (r) { r.classList.add("is-leaving"); });
+      setTimeout(function () {
+        saved = window.CorsetsBag.clear();                       // empties the bag (the hanger hides itself)
+        undoBox.hidden = false;
+        clearTimeout(undoTimer);
+        undoTimer = setTimeout(function () { undoBox.hidden = true; saved = null; }, 6000);
+      }, 550);
+    });
+    undoBox.querySelector("button").addEventListener("click", function () {
+      if (saved) window.CorsetsBag.restore(saved);               // puts everything back
+      saved = null; undoBox.hidden = true; clearTimeout(undoTimer);
+    });
+  }
+
+  // ORDER: opens WhatsApp with the order written out, ready to send to MS (no payment system needed yet)
+  orderBtn.addEventListener("click", function () {
+    var items = window.CorsetsBag.items(); if (!items.length) return;
+    var lines = items.map(function (it) { return "• " + it.name + (it.size ? " (" + it.size + ")" : "") + " × " + it.qty + " – " + rand(num(it.price) * it.qty); });
+    var msg = "Hi MS, I’d like to order:\n" + lines.join("\n") + "\nTotal: " + totalBox.textContent;
+    window.open("https://wa.me/" + WHATSAPP + "?text=" + encodeURIComponent(msg), "_blank", "noopener");
+  });
+
+  function open(showDept) {
+    if (showDept === "all") { shown.women = shown.men = shown.misc = true; }   // the small Checkout: every department shown open
+    else if (typeof showDept === "string") shown[showDept] = true;    // opened from a small hanger: that department's pieces are shown open
+    draw(); bag.setAttribute("aria-hidden", "false"); void bag.offsetWidth; html.classList.add("bag-open");
+  }
+  function close() { html.classList.remove("bag-open"); bag.setAttribute("aria-hidden", "true"); }
+  cart.addEventListener("click", function () { open(); });
+
+  // THE OTHER BAGS in the corner: a small hanger for each OTHER department that has pieces in the bag,
+  // wearing that department's garment (corset, bomber or bracelet) with its own count on a little tag
+  var others = document.getElementById("cart-others");
+  var GARMENT = { women: "corset", men: "blazer", misc: "bracelet" };
+  // THE SMALL CHECKOUT: appears under the small hangers once pieces are in 2 or more bags; opens the whole bag
+  var checkout = document.createElement("button");
+  checkout.type = "button"; checkout.className = "cart-checkout"; checkout.textContent = "Checkout";
+  checkout.addEventListener("click", function () { open("all"); });
+
+  function drawOthers() {
+    if (!others) return;
+    var B = window.CorsetsBag, here = B.dept(), items = B.items();
+    var filled = 0;                                              // how many departments have pieces (= how many bags)
+    ["women", "men", "misc"].forEach(function (d) {
+      var n = items.reduce(function (s, it) { return s + (B.deptOf(it) === d ? it.qty : 0); }, 0);
+      if (n) filled++;
+      var btn = others.querySelector('.cart-mini[data-d="' + d + '"]');
+      if (d === here || !n) { if (btn) btn.remove(); return; }   // no small hanger for your own tab, or for an empty bag
+      if (!btn) {                                                // a new small hanger: made once, then only its count changes
+        btn = document.createElement("button");
+        btn.type = "button"; btn.className = "cart-mini"; btn.setAttribute("data-d", d);
+        var svg = cart.querySelector(".hanger-icon").cloneNode(true);   // a copy of the big hanger...
+        Array.prototype.forEach.call(svg.querySelectorAll(".corset, .blazer, .bracelet"), function (g) {
+          if (!g.classList.contains(GARMENT[d])) g.remove();         // ...keeping only this department's garment
+        });
+        btn.appendChild(svg);
+        var tag = document.createElement("span"); tag.className = "mini-tag"; btn.appendChild(tag);
+        btn.addEventListener("click", function () { swing(btn, 0); open(d); });
+        // keep them in order (Women, Men, Miscellaneous) without disturbing the ones already hanging
+        var after = ["women", "men", "misc"].slice(["women", "men", "misc"].indexOf(d) + 1)
+          .map(function (x) { return others.querySelector('.cart-mini[data-d="' + x + '"]'); }).filter(Boolean)[0];
+        others.insertBefore(btn, after || checkout.parentNode === others ? (after || checkout) : null);
+      }
+      btn.querySelector(".mini-tag").textContent = n;
+      btn.setAttribute("aria-label", NAMES[d] + " bag, " + n + (n === 1 ? " item" : " items"));
+    });
+    if (filled >= 2) { if (checkout.parentNode !== others) others.appendChild(checkout); }   // 2 or more bags: show the checkout
+    else if (checkout.parentNode) checkout.remove();
+  }
+
+  // THE SWING CASCADE: when a piece is added and 2 or more bags are showing, the swing runs from the
+  // BOTTOM UP: the lowest small hanger first, then each one above it, ending with the big hanger.
+  function swing(el, delay) {
+    el.style.setProperty("--sd", delay + "s");
+    el.classList.remove("sway"); void el.offsetWidth; el.classList.add("sway");
+  }
+  window.addEventListener("corsets:sway", function () {
+    var stack = [cart].concat(Array.prototype.slice.call(others ? others.querySelectorAll(".cart-mini") : []));
+    stack.reverse().forEach(function (el, i) { swing(el, i * 0.14); });   // bottom first, 0.14 seconds apart
+  });
+  window.addEventListener("corsets:bag", drawOthers);
+  drawOthers();
+  Array.prototype.forEach.call(bag.querySelectorAll("[data-close]"), function (c) { c.addEventListener("click", close); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && html.classList.contains("bag-open")) close(); });
+  window.addEventListener("corsets:bag", function () { if (html.classList.contains("bag-open")) draw(); });
+})();
+
+
+/* =====================================================
+   THE SHOP MENU LINE: one thin line under the tab you are on (Men, Women or Miscellaneous) that
+   SLIDES across to the new tab when you switch, like the line in the appointments panel.
+   ===================================================== */
+(function () {
+  var bar = document.querySelector(".menu-bar");
+  var tabs = document.querySelectorAll(".tabs-row a[data-dept]");
+  if (!bar || !tabs.length) return;                              // not on the Shop page: do nothing
+  var line = document.createElement("span");
+  line.className = "shop-line"; line.setAttribute("aria-hidden", "true");
+  bar.appendChild(line);
+  function place(instant) {
+    var on = document.querySelector(".tabs-row a[aria-current]");
+    if (!on) return;
+    var b = bar.getBoundingClientRect(), r = on.getBoundingClientRect();
+    if (instant) line.style.transition = "none";
+    line.style.setProperty("--x", (r.left - b.left) + "px");     // where the tab starts
+    line.style.setProperty("--w", r.width);                      // how wide it is
+    line.style.top = (r.bottom - b.top + 4) + "px";               // just under the word
+    if (instant) { void line.offsetWidth; line.style.transition = ""; }
+  }
+  // watch for the tab changing (the menu marks the tab you are on with aria-current)
+  new MutationObserver(function () { place(false); }).observe(bar, { attributes: true, subtree: true, attributeFilter: ["aria-current"] });
+  window.addEventListener("resize", function () { place(true); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { place(true); });
+  place(true);
 })();

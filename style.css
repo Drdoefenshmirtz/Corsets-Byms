@@ -1361,3 +1361,172 @@ html.appt-open .appt-row { opacity: 1; transform: none; }
 .appt-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .appt-row .appt-mail { font-size: clamp(20px, 2.1vw, 34px); overflow-wrap: anywhere; }
 @media (max-width: 700px) { .appt-row { grid-template-columns: minmax(0, 1fr); } }
+
+
+/* =====================================================
+   THE BAG PANEL (Shop): a charcoal panel that slides in from the right when the hanger is clicked.
+   It moves on the same slow-fast-slow curve as the appointments panel.
+   ===================================================== */
+.bag {
+  --bag-bg: #2b2b2b; --bag-ink: #eee2e2; --bag-rule: rgba(238, 226, 226, 0.2);
+  --ease: cubic-bezier(0.87, 0, 0.13, 1);
+  position: fixed; inset: 0; z-index: 200; visibility: hidden; pointer-events: none;
+}
+html.bag-open .bag { visibility: visible; pointer-events: auto; }
+html.bag-open { overflow: hidden; }
+.bag-shade { position: absolute; inset: 0; background: rgba(28, 24, 25, 0.55); opacity: 0; transition: opacity 0.7s var(--ease); }
+html.bag-open .bag-shade { opacity: 1; }
+/* the panel itself: starts off the right edge and slides in */
+.bag-panel {
+  position: absolute; top: 0; right: 0; bottom: 0; width: min(480px, 100%);
+  background: var(--bag-bg); color: var(--bag-ink); font-family: var(--font);
+  display: flex; flex-direction: column; padding: 22px 28px 26px;
+  transform: translateX(100%); transition: transform 0.9s var(--ease);
+}
+html.bag-open .bag-panel { transform: none; }
+.bag-head { display: flex; justify-content: space-between; align-items: flex-start; }
+/* "your bag": big and lowercase, each word rises in */
+.bag-title { margin: 0; font-weight: 400; font-size: 56px; line-height: 1; letter-spacing: -0.035em; }
+.bag-title .w { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: 0.08em; }
+.bag-title .w > span { display: inline-block; transform: translateY(110%); transition: transform 0.9s var(--ease); transition-delay: calc(0.35s + var(--i, 0) * 0.07s); }
+html.bag-open .bag-title .w > span { transform: none; }
+.bag-close, .bag-continue, .bag-remove { all: unset; cursor: pointer; font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; opacity: 0.75; transition: opacity 0.2s ease; }
+.bag-close:hover, .bag-continue:hover, .bag-remove:hover, .bag-close:focus-visible, .bag-remove:focus-visible { opacity: 1; }
+.bag-count { margin: 10px 0 18px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.14em; opacity: 0.6; }
+/* THE LIST of pieces: scrolls if there are many */
+.bag-list { flex: 1; overflow-y: auto; border-top: 1px solid var(--bag-rule); scrollbar-width: none; }
+.bag-item {
+  display: grid; grid-template-columns: 64px 1fr auto; gap: 16px; align-items: start;
+  padding: 16px 0; border-bottom: 1px solid var(--bag-rule);
+  opacity: 0; transform: translateY(14px); transition: opacity 0.6s ease, transform 0.8s var(--ease); transition-delay: calc(0.5s + var(--r, 0) * 0.06s);
+}
+html.bag-open .bag-item { opacity: 1; transform: none; }
+/* removing a piece: it squashes to a thin line, like the carousel pictures */
+.bag-item.is-leaving { animation: collapse 0.55s cubic-bezier(0.7, 0, 0.3, 1) both; }
+.bag-img { display: block; width: 64px; aspect-ratio: 3 / 4; border-radius: 50%; overflow: hidden; background: rgba(238, 226, 226, 0.08); }   /* the small oval photo */
+.bag-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.bag-name { margin: 2px 0 4px; font-size: 15px; }
+.bag-size { margin: 0 0 12px; font-size: 12px; opacity: 0.65; letter-spacing: 0.04em; }
+/* the quantity: − 1 + in a small pill */
+.bag-qty { display: inline-flex; align-items: center; gap: 14px; padding: 4px 12px; border: 1px solid var(--bag-rule); border-radius: 999px; font-size: 13px; }
+.bag-step { all: unset; cursor: pointer; width: 14px; text-align: center; opacity: 0.8; }
+.bag-step:hover, .bag-step:focus-visible { opacity: 1; }
+.bag-right { display: flex; flex-direction: column; align-items: flex-end; gap: 14px; }
+.bag-price { margin: 2px 0 0; font-size: 15px; }
+/* THE EMPTY BAG message */
+.bag-empty { display: none; padding: 40px 0; font-size: 20px; }
+.bag-empty p { margin: 0 0 18px; }
+.bag.is-empty .bag-empty { display: block; }
+.bag.is-empty .bag-foot, .bag.is-empty .bag-list { display: none; }
+/* THE TOTAL and the order button */
+.bag-foot { padding-top: 18px; opacity: 0; transition: opacity 0.6s ease 0.7s; }
+html.bag-open .bag-foot { opacity: 1; }
+.bag-sum { display: flex; justify-content: space-between; font-size: 20px; margin-bottom: 8px; }
+.bag-note { margin: 0 0 18px; font-size: 12px; opacity: 0.6; }
+.bag-order {
+  all: unset; cursor: pointer; box-sizing: border-box; display: block; width: 100%; padding: 18px 24px; border-radius: 999px; text-align: center;
+  background: var(--bag-ink); color: var(--bag-bg); font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.14em;
+}
+.bag-order .roll { margin: 0 auto; }
+.bag-order .roll > span { transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.bag-order:hover .roll > span, .bag-order:focus-visible .roll > span { transform: translateY(-100%); }
+/* the hanger is a button: the hand cursor shows over it */
+.cart-hanger { cursor: pointer; }
+@media (max-width: 700px) { .bag-panel { padding: 18px 18px 22px; } .bag-title { font-size: 44px; } }
+@media (prefers-reduced-motion: reduce) { .bag-panel, .bag-shade, .bag-title .w > span, .bag-item, .bag-foot { transition: none; } }
+
+/* THE BAG BY DEPARTMENT: the department on show is listed first under its name; each other department
+   shows as one small line ("+ 2 pieces from Men") that opens up to list them. The total covers everything. */
+.bag-dept { margin: 16px 0 2px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; opacity: 0.6; }
+.bag-more {
+  all: unset; cursor: pointer; display: block; width: 100%; box-sizing: border-box; padding: 14px 0;
+  border-bottom: 1px solid var(--bag-rule); font-size: 13px; letter-spacing: 0.02em; opacity: 0.75;
+  transition: opacity 0.2s ease; animation: bagRise 0.6s ease both; animation-delay: calc(0.4s + var(--r, 0) * 0.06s);
+}
+.bag-more:hover, .bag-more:focus-visible { opacity: 1; }
+.bag-item.is-other { opacity: 0.8; }
+html.bag-open .bag-item.is-other { opacity: 0.8; }
+@keyframes bagRise { from { opacity: 0; transform: translateY(10px); } }
+
+/* THE OTHER BAGS: small hangers stacked under the main one, one for each other department with pieces in it */
+.shop-end { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.cart-others { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.cart-mini {
+  all: unset; cursor: pointer; position: relative; display: block; color: inherit; opacity: 0.85;
+  animation: miniDrop 0.6s cubic-bezier(0.3, 1.4, 0.5, 1) both;   /* drops in with a little bounce */
+  transition: opacity 0.2s ease;
+}
+.cart-mini:hover, .cart-mini:focus-visible { opacity: 1; }
+.cart-mini svg { width: 17px; height: 21px; display: block; overflow: visible; }
+.cart-mini .corset, .cart-mini .blazer, .cart-mini .bracelet { opacity: 1 !important; translate: none !important; }   /* always showing */
+.cart-mini .corset, .cart-mini .blazer-body, .cart-mini .br-bead { fill: currentColor; }                         /* filled: it has pieces */
+.cart-mini .lapel { stroke: var(--bg); }
+.has-hero:not(.past-hero) .cart-mini .lapel { stroke: rgba(0, 0, 0, 0.5); }
+/* the small count tag beside each mini hanger */
+.mini-tag {
+  position: absolute; left: calc(100% + 1px); top: 6px; padding: 0 4px; font-size: 9px; font-weight: 700; line-height: 1.35;
+  background: currentColor; border-radius: 2px; transform: rotate(10deg);
+}
+.mini-tag { color: inherit; }
+.mini-tag::first-line { color: var(--bg); }
+.has-hero:not(.past-hero) .mini-tag::first-line { color: #2b2b2b; }
+@keyframes miniDrop { from { opacity: 0; transform: translateY(-8px) rotate(-8deg); } }
+/* the small hangers hang BELOW the menu bar, so the bar itself stays the same height */
+.shop-end { position: relative; }
+.cart-others { position: absolute; top: calc(100% + 10px); left: 50%; transform: translateX(-50%); }
+
+/* THE SWING CASCADE: the big hanger and the small ones can each wait their turn (--sd) before swinging */
+.cart-hanger.sway .hanger-swing { animation-delay: var(--sd, 0s); }
+.cart-mini .hanger-swing { transform-origin: 20px 3px; }                                  /* small hangers swing from their hook too */
+.cart-mini.sway .hanger-swing { animation: sway 1.4s cubic-bezier(0.3, 0, 0.3, 1) var(--sd, 0s); }
+@media (hover: hover) { .cart-mini:hover .hanger-swing { animation: swayHover 0.9s ease; } }   /* a small swing when you hover one */
+.cart-mini:focus-visible .hanger-swing { animation: swayHover 0.9s ease; }                  /* and when it is reached with the keyboard */
+
+/* THE SMALL CHECKOUT: a tiny pill under the small hangers, only when 2 or more bags have pieces */
+.cart-checkout {
+  all: unset; cursor: pointer; margin-top: 4px; padding: 3px 8px; border: 1px solid currentColor; border-radius: 999px;
+  font-size: 8.5px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; white-space: nowrap;
+  animation: miniDrop 0.6s cubic-bezier(0.3, 1.4, 0.5, 1) both; transition: background-color 0.25s ease, color 0.25s ease;
+}
+.cart-checkout:hover, .cart-checkout:focus-visible { background: var(--ink); color: var(--bg); }
+.has-hero:not(.past-hero) .cart-checkout:hover { background: #fff; color: #2b2b2b; }
+/* the hanger's garment swaps quicker when changing tabs (in sync with the instant page switch) */
+.hanger-icon .corset, .hanger-icon .blazer, .hanger-icon .bracelet { transition-duration: 0.25s, 0.3s; }
+.hanger-icon .corset, body.dept-men .hanger-icon .blazer, body.dept-misc .hanger-icon .bracelet { transition-delay: 0.1s; }
+body.dept-men .hanger-icon .corset, body.dept-misc .hanger-icon .corset { transition-delay: 0s; }
+
+/* THE HANGER STARTS HIDDEN: it only pops up (with a little bounce) once a piece has been added to the bag.
+   Its space in the menu is kept, so the menu does not jump when it appears. */
+.shop-end .cart-hanger {
+  opacity: 0; transform: translateY(-12px) scale(0.8); pointer-events: none; visibility: hidden;
+  transition: opacity 0.35s ease, transform 0.55s cubic-bezier(0.3, 1.5, 0.5, 1), visibility 0s linear 0.55s;
+}
+.shop-end.has-bag .cart-hanger {
+  opacity: 1; transform: none; pointer-events: auto; visibility: visible;
+  transition: opacity 0.35s ease, transform 0.55s cubic-bezier(0.3, 1.5, 0.5, 1), visibility 0s;
+}
+
+/* CLEAR BAG: a quiet link above the order button, and the "Bag cleared · Undo" line afterwards */
+.bag-clear { all: unset; cursor: pointer; display: block; margin: 0 0 14px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; opacity: 0.6; transition: opacity 0.2s ease; }
+.bag-clear:hover, .bag-clear:focus-visible { opacity: 1; }
+.bag-more.is-leaving { animation: collapse 0.55s cubic-bezier(0.7, 0, 0.3, 1) both; }
+.bag-undo { font-size: 13px !important; opacity: 0.8; margin: -6px 0 18px !important; }
+.bag-undo button { all: unset; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+
+/* THE SHOP MENU LINE: replaces the plain underline; it slides between Men, Women and Miscellaneous */
+.tabs-row a[aria-current] { text-decoration: none; }
+.shop-line {
+  position: absolute; left: 0; height: 1px; width: 100px; background: currentColor; pointer-events: none;
+  transform-origin: left; transform: translateX(var(--x, 0)) scaleX(calc(var(--w, 0) / 100));
+  transition: transform 0.45s cubic-bezier(0.645, 0.045, 0.355, 1);
+}
+@media (prefers-reduced-motion: reduce) { .shop-line { transition: none; } }
+
+/* THE SQUEEZE: the ovals narrow as the carousel moves faster (script.js sets --squeeze between 1 and 0.55) */
+/* (the oval's frame narrows; the photo inside keeps its true shape, so nobody looks stretched) */
+.carousel-rail .card img, .carousel-rail .card video { clip-path: ellipse(calc(50% * var(--squeeze, 1)) 50% at 50% 50%); }
+
+/* while the carousel moves fast (script.js adds "is-fast"), the hover lift, title roll and flicker wait */
+.carousel-rail.is-fast .card:hover, .carousel-rail.is-fast .card:focus-within { transform: none; }
+.carousel-rail.is-fast .card:hover .roll > span { transform: none; }
+.carousel-rail.is-fast .card-title:hover { animation: none; }
