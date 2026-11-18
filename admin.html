@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- keeps search engines from listing the admin page -->
+  <meta name="robots" content="noindex, nofollow">
+  <title>Admin | Corsets by MS</title>
+  <link rel="preload" href="fonts/manrope.woff2" as="font" type="font/woff2" crossorigin>
+  <!-- admin.css holds the whole look of the dashboard (it borrows the fonts from style.css) -->
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+  <!-- =====================================================
+       THE CORSETS BY MS ADMIN DASHBOARD
+       Everything here is driven by admin.js, which talks to data.js (the data layer).
+       Right now it runs in "browser mode": data stays in this browser and the logins are for testing.
+       ===================================================== -->
+
+  <!-- THE SIGN-IN SCREEN -->
+  <main class="login" id="login">
+    <img class="login-logo" src="images/logo-mini.svg" alt="Corsets by MS">
+    <h1 class="login-title"><span class="w"><span>admin</span></span></h1>
+    <form class="login-form" id="login-form">
+      <label class="field"><span>Email</span><input type="email" name="email" autocomplete="username" required></label>
+      <label class="field"><span>Password</span><input type="password" name="password" autocomplete="current-password" required></label>
+      <p class="login-error" id="login-error" hidden></p>
+      <button type="submit" class="pill">Sign in</button>
+    </form>
+    <!-- shown only in browser mode: the test logins -->
+    <div class="dev-box" id="dev-box">
+      <p class="dev-pill">Development mode</p>
+      <p>Data stays in this browser. Test logins (password <b>corsets</b>):</p>
+      <ul id="dev-users"></ul>
+    </div>
+  </main>
+
+  <!-- THE DASHBOARD (shown once signed in) -->
+  <div class="app" id="app" hidden>
+    <header class="top">
+      <a href="index.html" class="top-logo" aria-label="Corsets by MS homepage"><img src="images/logo-mini.svg" alt=""></a>
+      <div class="top-mid">
+        <span class="top-title">Admin</span>
+        <span class="dev-pill" id="mode-pill">Development mode</span>
+      </div>
+      <div class="top-end">
+        <span class="who" id="who"></span>
+        <a href="shop.html" target="_blank" rel="noopener" class="link">View shop</a>
+        <button type="button" class="link" id="sign-out">Sign out</button>
+      </div>
+    </header>
+
+    <!-- THE TABS: a line slides under the one you are on -->
+    <nav class="tabs" id="tabs" role="tablist">
+      <button type="button" data-tab="products" class="is-on">Products</button>
+      <button type="button" data-tab="orders">Orders</button>
+      <button type="button" data-tab="appointments">Appointments</button>
+      <button type="button" data-tab="homepage">Homepage</button>
+      <button type="button" data-tab="team" data-need="team">Team</button>
+      <span class="tabs-line" aria-hidden="true"></span>
+    </nav>
+
+    <!-- PRODUCTS -->
+    <section class="panel" data-panel="products">
+      <div class="panel-head">
+        <h2 class="panel-title">products</h2>
+        <button type="button" class="pill" id="add-piece">+ Add piece</button>
+      </div>
+      <!-- the departments: Women, Men, Miscellaneous (with how many pieces each has) -->
+      <div class="depts" id="depts"></div>
+      <p class="hint">Use the arrows to change the order pieces appear in the Shop. Hidden pieces stay here but don't show in the Shop.</p>
+      <div class="list" id="list"></div>
+    </section>
+
+    <!-- ORDERS, APPOINTMENTS, HOMEPAGE: coming in the next phases -->
+    <section class="panel" data-panel="orders" hidden>
+      <h2 class="panel-title">orders</h2>
+      <p class="soon">Coming in Phase 2: every "Order on WhatsApp" from the bag will land here, with the customer, pieces, sizes and total, and a status you can update.</p>
+    </section>
+    <section class="panel" data-panel="appointments" hidden>
+      <h2 class="panel-title">appointments</h2>
+      <p class="soon">Coming in Phase 2: every booking from the appointments panel will land here, with a status you can update.</p>
+    </section>
+    <section class="panel" data-panel="homepage" hidden>
+      <h2 class="panel-title">homepage</h2>
+      <p class="soon">Coming in Phase 3: change the carousel pictures, titles and article text.</p>
+    </section>
+
+    <!-- TEAM (owner and Majuta only) -->
+    <section class="panel" data-panel="team" hidden>
+      <h2 class="panel-title">team</h2>
+      <div class="list" id="team"></div>
+      <p class="hint">In development mode these are the test logins. Once the site is connected to Supabase, MS will invite real team members by email here.</p>
+      <!-- BACKUP: carry the data to another browser, or into Supabase later -->
+      <div class="tools">
+        <h3>Backup</h3>
+        <p class="hint">Data in development mode lives only in this browser. Download a backup to move it to another browser, or to load it into the live system later.</p>
+        <button type="button" class="pill ghost" id="dl-backup">Download backup</button>
+        <label class="pill ghost"><input type="file" accept="application/json" id="up-backup" hidden>Load backup</label>
+        <button type="button" class="pill ghost danger" id="reset">Reset to starting pieces</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- THE PIECE EDITOR: a charcoal panel that slides in from the right (like the bag) -->
+  <div class="editor" id="editor" aria-hidden="true">
+    <div class="editor-shade" data-close></div>
+    <form class="editor-panel" id="editor-form" novalidate>
+      <div class="editor-head">
+        <h2 class="editor-title" id="editor-title">new piece</h2>
+        <button type="button" class="link" data-close>Close</button>
+      </div>
+      <!-- the photo: shown as an oval, like in the Shop -->
+      <div class="photo">
+        <label class="photo-oval" id="photo-drop">
+          <img id="photo-img" alt="" hidden>
+          <span class="photo-empty" id="photo-empty">Drop a photo here<br>or tap to choose</span>
+          <input type="file" accept="image/*" id="photo-input" hidden>
+        </label>
+        <p class="hint">Tall photos work best (3 wide by 4 high). They're shrunk automatically.</p>
+      </div>
+      <label class="field"><span>Name*</span><input name="name" required placeholder="e.g. Heritage Corset"></label>
+      <label class="field"><span>Price (R)*</span><input name="price" type="number" min="0" step="10" required placeholder="2450"></label>
+      <label class="field"><span>Department</span><select name="dept" id="f-dept"></select></label>
+      <label class="field"><span>Sizes</span><select name="sizes" id="f-sizes"></select></label>
+      <label class="field"><span>Description</span><textarea name="desc" rows="4" placeholder="A sentence or two about the piece"></textarea></label>
+      <label class="check"><input type="checkbox" name="visible" checked><span>Show in the Shop</span></label>
+      <p class="form-error" id="form-error" hidden></p>
+      <div class="editor-actions">
+        <button type="submit" class="pill">Save</button>
+        <button type="button" class="link danger" id="delete-piece" hidden>Delete piece</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- small messages ("Saved", errors) appear here -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="data.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
