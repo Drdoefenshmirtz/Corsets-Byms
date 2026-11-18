@@ -1645,7 +1645,7 @@ window.CorsetsBag = (function () {
       }
     });
     var s = row(); s.classList.add("appt-send-row");
-    s.innerHTML = '<div><button type="submit" class="appt-send"><span class="roll"><span>Send</span><span aria-hidden="true">Send</span></span></button></div>';
+    s.innerHTML = '<div><button type="submit" class="appt-send"><span class="roll"><span>Send</span><span aria-hidden="true">Send</span></span></button><p class="appt-privacy">I only use your details to arrange your appointment.</p></div>';
   }
 
   // moves the line under the tab you are on
@@ -1700,6 +1700,21 @@ window.CorsetsBag = (function () {
       if (bad && ok) { ok = false; inp.focus(); }
     });
     if (!ok) return;
+    // SAVE THE BOOKING for the admin (Appointments tab): every question and its answer
+    if (window.CorsetsData && window.CorsetsData.appointments) {
+      var answers = [], contact = {};
+      Array.prototype.forEach.call(form.querySelectorAll(".appt-row"), function (d) {
+        var q = d.querySelector(".appt-q .t"); if (!q) return;
+        var label = q.textContent.replace(/\*$/, "");
+        var picked = Array.prototype.filter.call(d.querySelectorAll("input[type=checkbox], input[type=radio]"), function (c) { return c.checked; }).map(function (c) { return c.value; });
+        var field = d.querySelector(".appt-field input, .appt-field textarea");
+        var a = picked.length ? picked.join(", ") : field ? field.value.trim() : "";
+        answers.push({ q: label, a: a });
+        var key = label.toLowerCase();
+        if (key === "name" || key === "email" || key === "phone") contact[key] = a;
+      });
+      window.CorsetsData.appointments.create({ kind: current, name: contact.name || "", email: contact.email || "", phone: contact.phone || "", answers: answers });
+    }
     form.hidden = true; thanks.hidden = false;
     setTitle("thank you");
     panel.scrollTo({ top: 0, behavior: "smooth" });
@@ -1819,11 +1834,38 @@ window.CorsetsBag = (function () {
   }
 
   // ORDER: opens WhatsApp with the order written out, ready to send to MS (no payment system needed yet)
+  // the name and phone fields (remembered in this browser for next time)
+  var nameIn = document.getElementById("bag-name"), phoneIn = document.getElementById("bag-phone");
+  try { var mine = JSON.parse(localStorage.getItem("corsets-customer") || "{}"); if (nameIn) nameIn.value = mine.name || ""; if (phoneIn) phoneIn.value = mine.phone || ""; } catch (e) {}
+
   orderBtn.addEventListener("click", function () {
     var items = window.CorsetsBag.items(); if (!items.length) return;
+    // name and phone are needed so MS can reach the customer
+    var name = nameIn ? nameIn.value.trim() : "", phone = phoneIn ? phoneIn.value.trim() : "";
+    if (nameIn && (!name || phone.replace(/\D/g, "").length < 9)) {
+      var miss = !name ? nameIn : phoneIn;
+      miss.parentElement.classList.add("is-missing"); miss.focus();
+      setTimeout(function () { miss.parentElement.classList.remove("is-missing"); }, 2500);
+      return;
+    }
+    try { localStorage.setItem("corsets-customer", JSON.stringify({ name: name, phone: phone })); } catch (e) {}
     var lines = items.map(function (it) { return "• " + it.name + (it.size ? " (" + it.size + ")" : "") + " × " + it.qty + " – " + rand(num(it.price) * it.qty); });
-    var msg = "Hi MS, I’d like to order:\n" + lines.join("\n") + "\nTotal: " + totalBox.textContent;
-    window.open("https://wa.me/" + WHATSAPP + "?text=" + encodeURIComponent(msg), "_blank", "noopener");
+    var total = items.reduce(function (n, it) { return n + num(it.price) * it.qty; }, 0);
+    // open WhatsApp straight away (browsers only allow it during the click), then fill in the order number
+    var win = window.open("about:blank", "_blank");
+    function send(number) {
+      var msg = "Hi MS, I’d like to order" + (number ? " (order #" + number + ")" : "") + ":\n" + lines.join("\n") + "\nTotal: " + rand(total) + "\n\n" + name + ", " + phone;
+      var url = "https://wa.me/" + WHATSAPP + "?text=" + encodeURIComponent(msg);
+      if (win) win.location = url; else window.open(url, "_blank", "noopener");
+    }
+    // SAVE THE ORDER for the admin (Orders tab), then send it on WhatsApp
+    if (window.CorsetsData && window.CorsetsData.orders) {
+      window.CorsetsData.orders.create({
+        customer: { name: name, phone: phone },
+        items: items.map(function (it) { return { name: it.name, size: it.size, qty: it.qty, price: num(it.price), dept: it.dept || "women", img: it.img && it.img.indexOf("data:") === 0 ? "" : (it.img || "") }; }),
+        total: total
+      }).then(function (o) { send(o.number); }).catch(function () { send(null); });
+    } else send(null);
   });
 
   function open(showDept) {

@@ -242,6 +242,12 @@
       <div class="bag-foot" id="bag-foot">
         <div class="bag-sum"><span>Total</span><span id="bag-total">R 0</span></div>
         <p class="bag-note">Delivery and fittings are arranged with you directly.</p>
+        <!-- YOUR DETAILS: so MS knows who the order is from (saved with the order in the admin) -->
+        <div class="bag-details">
+          <label class="bag-field"><span>Name*</span><input id="bag-name" autocomplete="name" placeholder="Your name"></label>
+          <label class="bag-field"><span>Phone*</span><input id="bag-phone" type="tel" autocomplete="tel" placeholder="+27"></label>
+        </div>
+        <p class="bag-privacy">We only use your details to arrange your order.</p>
         <!-- CLEAR BAG: a quiet link (with Undo afterwards) -->
         <button type="button" class="bag-clear" id="bag-clear">Clear bag</button>
         <button type="button" class="bag-order" id="bag-order"><span class="roll"><span>Order on WhatsApp</span><span aria-hidden="true">Order on WhatsApp</span></span></button>

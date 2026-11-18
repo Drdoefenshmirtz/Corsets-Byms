@@ -1530,3 +1530,16 @@ body.dept-men .hanger-icon .corset, body.dept-misc .hanger-icon .corset { transi
 .carousel-rail.is-fast .card:hover, .carousel-rail.is-fast .card:focus-within { transform: none; }
 .carousel-rail.is-fast .card:hover .roll > span { transform: none; }
 .carousel-rail.is-fast .card-title:hover { animation: none; }
+
+/* THE BAG: your name and phone above the order button (so the order reaches MS with your details) */
+.bag-details { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 6px 0 8px; }
+.bag-field { display: block; }
+.bag-field span { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; opacity: 0.6; margin-bottom: 4px; }
+.bag-field input { all: unset; box-sizing: border-box; display: block; width: 100%; padding: 4px 0 7px; font-size: 14px; border-bottom: 1px solid var(--bag-rule); transition: border-color 0.3s ease; }
+.bag-field input:focus { border-bottom-color: var(--bag-ink); }
+.bag-field input::placeholder { color: var(--bag-ink); opacity: 0.35; }
+.bag-field.is-missing input { border-bottom-color: #e7a0a0; }
+.bag-field.is-missing span { color: #e7a0a0; opacity: 1; }
+.bag-privacy { margin: 0 0 14px; font-size: 11px; opacity: 0.5; }
+
+.appt-privacy { margin: 14px 0 0; font-size: 11px; opacity: 0.55; }   /* the short privacy line under Send */

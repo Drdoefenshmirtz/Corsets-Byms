@@ -167,3 +167,64 @@ html.editing .editor-panel { transform: none; }
   .editor-panel { padding: 18px 18px 30px; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+/* =====================================================
+   ORDERS AND APPOINTMENTS (the inboxes)
+   ===================================================== */
+/* the little count of NEW orders / bookings beside the tab name */
+.tab-n:not(:empty) { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; margin-left: 6px; border-radius: 999px; background: var(--ink); color: var(--cream); font-size: 10px; font-weight: 700; vertical-align: 3px; }
+/* one row per order or booking; tap to open the details */
+.inbox-row { border-bottom: 1px solid var(--rule); animation: fadeUp 0.5s var(--ease) both; animation-delay: calc(var(--r, 0) * 0.03s); }
+.inbox-sum {
+  all: unset; box-sizing: border-box; cursor: pointer; display: grid; grid-template-columns: 90px 1.2fr 1.6fr 110px 130px 24px; gap: 16px; align-items: center;
+  width: 100%; padding: 16px 0;
+}
+.inbox-sum:focus-visible { outline: 1px solid var(--ink); outline-offset: 2px; }
+.inbox-sum .no { font-size: 13px; opacity: 0.6; }
+.inbox-sum .who { font-size: 16px; }
+.inbox-sum .who small { display: block; font-size: 12px; opacity: 0.55; margin-top: 2px; }
+.inbox-sum .what { font-size: 13px; opacity: 0.75; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inbox-sum .amt { font-size: 15px; }
+.inbox-sum .plus { font-size: 18px; text-align: center; transition: transform 0.4s var(--ease); }
+.inbox-row.is-open .plus { transform: rotate(45deg); }
+/* the status pill: its colour shows where it stands */
+.status { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; border: 1px solid var(--ink); text-align: center; }
+.status.s-new { background: var(--ink); color: var(--cream); }
+.status.s-cancelled { opacity: 0.45; }
+.status.s-delivered, .status.s-done { border-style: dashed; }
+/* the details, opened under the row */
+.inbox-detail { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.5s var(--ease); }
+.inbox-row.is-open .inbox-detail { grid-template-rows: 1fr; }
+.inbox-detail > div { overflow: hidden; }
+.inbox-body { display: grid; grid-template-columns: 1.4fr 1fr; gap: 30px; padding: 4px 0 26px 106px; }
+.items { list-style: none; margin: 0; padding: 0; }
+.items li { display: grid; grid-template-columns: 40px 1fr auto; gap: 14px; align-items: center; padding: 8px 0; border-top: 1px solid var(--rule); font-size: 14px; }
+.items li:first-child { border-top: 0; }
+.items .ov { width: 40px; aspect-ratio: 3 / 4; border-radius: 50%; overflow: hidden; background: rgba(43, 43, 43, 0.08); }
+.items .ov img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.items small { display: block; opacity: 0.55; font-size: 12px; }
+.answers { margin: 0; display: grid; grid-template-columns: 140px 1fr; gap: 8px 16px; font-size: 14px; }
+.answers dt { opacity: 0.55; font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; padding-top: 2px; }
+.answers dd { margin: 0; white-space: pre-line; }
+.side h4 { margin: 0 0 10px; font-weight: 400; font-size: 12px; text-transform: uppercase; letter-spacing: 0.14em; opacity: 0.6; }
+.side .field select { font-size: 15px; }
+.side .contact { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 18px; }
+.side .contact a { text-decoration: none; }
+.side .total { font-size: 20px; margin: 10px 0 18px; }
+.empty { padding: 30px 0; font-size: 16px; opacity: 0.6; }
+@media (max-width: 760px) {
+  .inbox-sum { grid-template-columns: 1fr auto; grid-template-areas: "who status" "what amt"; row-gap: 6px; }
+  .inbox-sum .no, .inbox-sum .plus { display: none; }
+  .inbox-sum .who { grid-area: who; } .inbox-sum .what { grid-area: what; } .inbox-sum .amt { grid-area: amt; } .inbox-sum .st { grid-area: status; }
+  .inbox-body { grid-template-columns: 1fr; padding-left: 0; }
+}
+
+/* the slide editor: the two captions side by side */
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; }
+/* homepage slides use the 2:3 oval of the carousel */
+#slides .row-img, #slide-drop { aspect-ratio: 2 / 3; }
+.row-tag { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.55; margin-left: 8px; }
+html.editing-slide { overflow: hidden; }
+html.editing-slide #slide-editor { visibility: visible; pointer-events: auto; }
+html.editing-slide #slide-editor .editor-shade { opacity: 1; }
+html.editing-slide #slide-editor .editor-panel { transform: none; }

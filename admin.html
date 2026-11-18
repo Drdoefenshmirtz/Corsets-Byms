@@ -54,8 +54,8 @@
     <!-- THE TABS: a line slides under the one you are on -->
     <nav class="tabs" id="tabs" role="tablist">
       <button type="button" data-tab="products" class="is-on">Products</button>
-      <button type="button" data-tab="orders">Orders</button>
-      <button type="button" data-tab="appointments">Appointments</button>
+      <button type="button" data-tab="orders">Orders<span class="tab-n" id="n-orders"></span></button>
+      <button type="button" data-tab="appointments">Appointments<span class="tab-n" id="n-appts"></span></button>
       <button type="button" data-tab="homepage">Homepage</button>
       <button type="button" data-tab="team" data-need="team">Team</button>
       <span class="tabs-line" aria-hidden="true"></span>
@@ -73,29 +73,39 @@
       <div class="list" id="list"></div>
     </section>
 
-    <!-- ORDERS, APPOINTMENTS, HOMEPAGE: coming in the next phases -->
+    <!-- ORDERS: every "Order on WhatsApp" from the bag lands here. Tap an order to open it. -->
     <section class="panel" data-panel="orders" hidden>
-      <h2 class="panel-title">orders</h2>
-      <p class="soon">Coming in Phase 2: every "Order on WhatsApp" from the bag will land here, with the customer, pieces, sizes and total, and a status you can update.</p>
+      <div class="panel-head"><h2 class="panel-title">orders</h2></div>
+      <div class="depts" id="order-filters"></div>          <!-- filter by status, with counts -->
+      <div class="list" id="orders"></div>
     </section>
+
+    <!-- APPOINTMENTS: every booking from the appointments panel lands here. Tap one to open it. -->
     <section class="panel" data-panel="appointments" hidden>
-      <h2 class="panel-title">appointments</h2>
-      <p class="soon">Coming in Phase 2: every booking from the appointments panel will land here, with a status you can update.</p>
+      <div class="panel-head"><h2 class="panel-title">appointments</h2></div>
+      <div class="depts" id="appt-filters"></div>
+      <div class="list" id="appts"></div>
     </section>
+
+    <!-- HOMEPAGE: the carousel slides (the ovals on the homepage and the articles they open) -->
     <section class="panel" data-panel="homepage" hidden>
-      <h2 class="panel-title">homepage</h2>
-      <p class="soon">Coming in Phase 3: change the carousel pictures, titles and article text.</p>
+      <div class="panel-head">
+        <h2 class="panel-title">homepage</h2>
+        <button type="button" class="pill" id="add-slide">+ Add slide</button>
+      </div>
+      <p class="hint">These are the ovals that drift across the homepage. Use the arrows to change their order; the first one is the photo the opening animation grows into.</p>
+      <div class="list" id="slides"></div>
     </section>
 
     <!-- TEAM (owner and Majuta only) -->
     <section class="panel" data-panel="team" hidden>
       <h2 class="panel-title">team</h2>
       <div class="list" id="team"></div>
-      <p class="hint">In development mode these are the test logins. Once the site is connected to Supabase, MS will invite real team members by email here.</p>
+      <p class="hint">The people who can sign in to this dashboard.</p>
       <!-- BACKUP: carry the data to another browser, or into Supabase later -->
       <div class="tools">
         <h3>Backup</h3>
-        <p class="hint">Data in development mode lives only in this browser. Download a backup to move it to another browser, or to load it into the live system later.</p>
+        <p class="hint">Download a copy of all the pieces and photos, or load one back in.</p>
         <button type="button" class="pill ghost" id="dl-backup">Download backup</button>
         <label class="pill ghost"><input type="file" accept="application/json" id="up-backup" hidden>Load backup</label>
         <button type="button" class="pill ghost danger" id="reset">Reset to starting pieces</button>
@@ -130,6 +140,41 @@
       <div class="editor-actions">
         <button type="submit" class="pill">Save</button>
         <button type="button" class="link danger" id="delete-piece" hidden>Delete piece</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- THE SLIDE EDITOR: the same sliding panel, for a homepage slide and its article -->
+  <div class="editor" id="slide-editor" aria-hidden="true">
+    <div class="editor-shade" data-close></div>
+    <form class="editor-panel" id="slide-form" novalidate>
+      <div class="editor-head">
+        <h2 class="editor-title" id="slide-title">new slide</h2>
+        <button type="button" class="link" data-close>Close</button>
+      </div>
+      <div class="photo">
+        <label class="photo-oval" id="slide-drop">
+          <img id="slide-img" alt="" hidden>
+          <span class="photo-empty" id="slide-empty">Drop a photo here<br>or tap to choose</span>
+          <input type="file" accept="image/*" id="slide-input" hidden>
+        </label>
+        <p class="hint" id="slide-photo-hint">Tall photos work best (2 wide by 3 high).</p>
+      </div>
+      <label class="field"><span>Photo description</span><input name="alt" placeholder="e.g. A model in a red satin corset on a tree-lined street"></label>
+      <label class="field"><span>Title*</span><input name="title" required placeholder="One word above the oval, e.g. Bridal"></label>
+      <label class="field"><span>Article headline</span><input name="headline" placeholder="e.g. bridal in red"></label>
+      <div class="two">
+        <label class="field"><span>Caption 1 heading</span><input name="m1h" placeholder="Collection"></label>
+        <label class="field"><span>Caption 1 text</span><input name="m1t" placeholder="2026"></label>
+        <label class="field"><span>Caption 2 heading</span><input name="m2h" placeholder="Design"></label>
+        <label class="field"><span>Caption 2 text</span><input name="m2t" placeholder="Bridal &amp; ceremony"></label>
+      </div>
+      <label class="field"><span>Article text</span><textarea name="article" rows="8" placeholder="Write the article. Leave an empty line between paragraphs."></textarea></label>
+      <label class="check"><input type="checkbox" name="visible" checked><span>Show on the homepage</span></label>
+      <p class="form-error" id="slide-error" hidden></p>
+      <div class="editor-actions">
+        <button type="submit" class="pill">Save</button>
+        <button type="button" class="link danger" id="delete-slide" hidden>Delete slide</button>
       </div>
     </form>
   </div>
