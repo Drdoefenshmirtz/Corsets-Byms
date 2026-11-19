@@ -120,15 +120,16 @@ button, input, select, textarea { font: inherit; color: inherit; }
    THE PIECE EDITOR: slides in from the right, like the bag in the Shop
    ===================================================== */
 .editor { position: fixed; inset: 0; z-index: 50; visibility: hidden; pointer-events: none; }
-html.editing .editor { visibility: visible; pointer-events: auto; }
+/* each editor opens only with its own class, so the two never sit on top of each other */
+html.editing #editor { visibility: visible; pointer-events: auto; }
 html.editing { overflow: hidden; }
 .editor-shade { position: absolute; inset: 0; background: rgba(28, 24, 25, 0.5); opacity: 0; transition: opacity 0.6s var(--ease); }
-html.editing .editor-shade { opacity: 1; }
+html.editing #editor .editor-shade { opacity: 1; }
 .editor-panel {
   position: absolute; top: 0; right: 0; bottom: 0; width: min(520px, 100%); overflow-y: auto; padding: 22px 30px 40px;
   background: var(--ink); color: var(--cream); transform: translateX(100%); transition: transform 0.85s var(--ease);
 }
-html.editing .editor-panel { transform: none; }
+html.editing #editor .editor-panel { transform: none; }
 .editor-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; }
 .editor-title { margin: 0; font-weight: 400; font-size: 46px; letter-spacing: -0.035em; line-height: 1; }
 .editor .field select option { color: var(--ink); }

@@ -1543,3 +1543,18 @@ body.dept-men .hanger-icon .corset, body.dept-misc .hanger-icon .corset { transi
 .bag-privacy { margin: 0 0 14px; font-size: 11px; opacity: 0.5; }
 
 .appt-privacy { margin: 14px 0 0; font-size: 11px; opacity: 0.55; }   /* the short privacy line under Send */
+
+/* ORDER SENT: the thank-you shown in the empty bag after "Order on WhatsApp" */
+.bag-sent { margin: 0 0 22px; }
+.bag-sent p { margin: 0 0 10px; }
+.bag-sent-title { font-size: 34px !important; letter-spacing: -0.03em; line-height: 1.05; }
+html.bag-was-sent .bag-empty > p:first-child { display: none; }   /* "Your bag is empty." is replaced by the thank-you */
+html.bag-was-sent #bag-count { visibility: hidden; }                 /* no "0 pieces in all" under the thank-you */
+
+/* =====================================================
+   OPENING THE STORY PAGE FROM THE CAROUSEL
+   The homepage fades to the blush background, and the Story page opens on the same blush
+   with the crimson scarf floating in, so it reads as one move (script.js: goToPage)
+   ===================================================== */
+.page-veil { position: fixed; inset: 0; z-index: 9999; background: #eee2e2; opacity: 0; pointer-events: none; transition: opacity 0.5s ease; }
+.page-veil.is-on { opacity: 1; }

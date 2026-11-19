@@ -236,6 +236,12 @@
         <p>Your bag is empty.</p>
         <!-- shown for a few seconds after "Clear bag", so a mistake can be undone -->
         <p class="bag-undo" id="bag-undo" hidden>Bag cleared &middot; <button type="button">Undo</button></p>
+        <!-- shown after "Order on WhatsApp": the bag empties itself, with a way back in case the message wasn't sent -->
+        <div class="bag-sent" id="bag-sent" hidden>
+          <p class="bag-sent-title">Thank you<span id="bag-sent-name"></span>.</p>
+          <p>Your order<span id="bag-sent-no"></span> has gone to MS on WhatsApp. Press send there and she'll be in touch.</p>
+          <p class="bag-undo">Didn't send? <button type="button" id="bag-sent-undo">Put the pieces back</button></p>
+        </div>
         <button type="button" class="bag-continue" data-close>Continue shopping</button>
       </div>
       <!-- the total and the order button -->

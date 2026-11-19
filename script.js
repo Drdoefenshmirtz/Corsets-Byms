@@ -1123,7 +1123,27 @@
     // Let the browser do its normal thing for "open in a new tab" style clicks
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
     e.preventDefault();      // do not follow the title's link: the article opens here instead
+    if (card.getAttribute("data-page")) { goToPage(card); return; }   // the Story slide opens its own page
     open(card);
+  });
+
+  // A SLIDE WITH ITS OWN PAGE (the Story): the homepage fades straight into the satin colour,
+  // then the Story page opens on the 3D satin (no zoom)
+  function goToPage(card) {
+    var url = card.getAttribute("data-page");
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { location.href = url; return; }
+    window.dispatchEvent(new Event("corsets:lock"));
+    var veil = document.createElement("div"); veil.className = "page-veil";
+    document.body.appendChild(veil);
+    void veil.offsetWidth;                                      // lets the fade start from clear
+    veil.classList.add("is-on");
+    setTimeout(function () { location.href = url; }, 520);
+  }
+  // coming Back to this page from the Story: clear the fade
+  window.addEventListener("pageshow", function (e) {
+    if (!e.persisted) return;
+    Array.prototype.forEach.call(document.querySelectorAll(".page-veil"), function (f) { f.remove(); });
+    window.dispatchEvent(new Event("corsets:unlock"));
   });
 
   // The browser's Back button
@@ -1857,6 +1877,7 @@ window.CorsetsBag = (function () {
       var msg = "Hi MS, I’d like to order" + (number ? " (order #" + number + ")" : "") + ":\n" + lines.join("\n") + "\nTotal: " + rand(total) + "\n\n" + name + ", " + phone;
       var url = "https://wa.me/" + WHATSAPP + "?text=" + encodeURIComponent(msg);
       if (win) win.location = url; else window.open(url, "_blank", "noopener");
+      showSent(number, name, window.CorsetsBag.clear());          // empty the bag, keeping a copy in case it wasn't sent
     }
     // SAVE THE ORDER for the admin (Orders tab), then send it on WhatsApp
     if (window.CorsetsData && window.CorsetsData.orders) {
@@ -1867,6 +1888,24 @@ window.CorsetsBag = (function () {
       }).then(function (o) { send(o.number); }).catch(function () { send(null); });
     } else send(null);
   });
+
+  // ORDER SENT: the bag is now empty and shows a thank-you, with "Put the pieces back" if WhatsApp was closed without sending
+  var sentBox = document.getElementById("bag-sent"), sentCopy = null;
+  function showSent(number, name, copy) {
+    if (!sentBox) return;
+    sentCopy = copy;
+    document.getElementById("bag-sent-name").textContent = name ? ", " + name.split(" ")[0] : "";
+    document.getElementById("bag-sent-no").textContent = number ? " #" + number : "";
+    if (undoBox) undoBox.hidden = true;                          // the "Bag cleared" line isn't needed here
+    sentBox.hidden = false; html.classList.add("bag-was-sent");
+  }
+  function hideSent() { if (sentBox) sentBox.hidden = true; sentCopy = null; html.classList.remove("bag-was-sent"); }
+  if (sentBox) document.getElementById("bag-sent-undo").addEventListener("click", function () {
+    var c = sentCopy; hideSent(); if (c) window.CorsetsBag.restore(c);
+  });
+  // adding a new piece clears the thank-you
+  var origAdd = window.CorsetsBag.add;
+  window.CorsetsBag.add = function () { hideSent(); return origAdd.apply(this, arguments); };
 
   function open(showDept) {
     if (showDept === "all") { shown.women = shown.men = shown.misc = true; }   // the small Checkout: every department shown open

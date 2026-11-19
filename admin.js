@@ -213,6 +213,7 @@
         var th = slideThumb(sl); if (th) row.querySelector("img").src = th; else row.querySelector("img").remove();
         row.querySelector(".nm").textContent = sl.title;
         if (sl.media && sl.media.type === "video") { var t = document.createElement("span"); t.className = "row-tag"; t.textContent = "Moving picture"; row.querySelector(".row-name").appendChild(t); }
+        if (sl.page) { var pg = document.createElement("span"); pg.className = "row-tag"; pg.textContent = "Opens the Story page"; row.querySelector(".row-name").appendChild(pg); }
         if (i === 0) { var f = document.createElement("span"); f.className = "row-tag"; f.textContent = "Opening photo"; row.querySelector(".row-name").appendChild(f); }
         if (sl.hidden) { var b = document.createElement("span"); b.className = "badge"; b.textContent = "Hidden"; row.querySelector(".row-name").appendChild(b); }
         row.querySelector("small").textContent = (sl.headline || "") + ((sl.article || []).length ? " · " + sl.article.length + (sl.article.length === 1 ? " paragraph" : " paragraphs") : "");
