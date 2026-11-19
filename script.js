@@ -1,3 +1,8 @@
+/* THE CONTACT DETAILS saved in the admin (Settings), with a fallback if the data layer is missing */
+function siteSetting(k, fallback) {
+  try { var v = window.CorsetsData.content.getSync("settings")[k]; return v ? String(v) : fallback; } catch (e) { return fallback; }
+}
+
 (function () {
 
   /* =====================================================
@@ -488,6 +493,17 @@
   var lastTime = 0;      // when that was
   var dragVelocity = 0;  // how fast your hand was moving
 
+  // THE EASTER EGG: if someone lets the carousel drift all the way round once without touching it,
+  // the Story slide's title starts to shimmer gold, a quiet nudge that the Story matters.
+  // Grabbing the row or using the wheel starts the count again. Once found, it stays for the visit.
+  var untouched = 0;                                    // how far it has drifted since it was last touched
+  var GLOW_KEY = "corsets-story-glow";
+  function storyGlow() {
+    Array.prototype.forEach.call(rail.querySelectorAll(".card[data-page]"), function (c) { c.classList.add("story-glow"); });
+  }
+  try { if (sessionStorage.getItem(GLOW_KEY)) storyGlow(); } catch (e) {}
+  function touched() { untouched = 0; }
+
   measure();
   // Start so that images 1 and 2 are in front, with a quarter of the last image on the left
   // and a quarter of image 3 on the right.
@@ -504,6 +520,7 @@
   /* ---------- GRABBING IT (mouse and touch) ---------- */
 
   // Press down: remember where, but do not start dragging yet (so a plain click on a title still works)
+  track.addEventListener("pointerdown", touched);
   track.addEventListener("pointerdown", function (e) {
     if (e.pointerType === "mouse" && e.button !== 0) return;   // only the left mouse button
     if (locked) return;                                        // an article is open: no grabbing
@@ -580,6 +597,7 @@
      the faster it goes (up to MAX_SPEED). When you stop, it eases back to its normal drift, like after a fling.
      Change WHEEL_PUSH to make each scroll push harder (bigger) or softer (smaller). */
   var WHEEL_PUSH = 3.4;
+  window.addEventListener("wheel", touched, { passive: true });
   window.addEventListener("wheel", function (e) {
     var html = document.documentElement;
     if (locked || html.classList.contains("is-loading") || html.classList.contains("appt-open") || html.classList.contains("article-open")) return;
@@ -612,6 +630,15 @@
       var rate = paused ? STOP_FAST : SETTLE;
       velocity += (target - velocity) * (1 - Math.exp(-rate * dt));
       pos += velocity * dt;
+      // the easter egg: one full, untouched loop
+      if (untouched >= 0) {
+        untouched += Math.abs(velocity * dt);
+        if (untouched >= loopWidth) {
+          untouched = -1;                               // found: stop counting
+          storyGlow();
+          try { sessionStorage.setItem(GLOW_KEY, "1"); } catch (e) {}
+        }
+      }
     }
 
     // WRAPPING: once the first set of images has fully passed, jump back by exactly one set.
@@ -1579,8 +1606,8 @@ window.CorsetsBag = (function () {
     email: {                                                     // the CONTACT tab: email and WhatsApp
       title: "get in touch",
       side: "Prefer to write or chat? I’ll reply within 48 hours.",
-      email: "hello@corsetsbyms.co.za",                            // PLACEHOLDER: change to MS's real email address
-      whatsapp: "27000000000"                                      // PLACEHOLDER: MS's WhatsApp number, country code first, no + or spaces (e.g. 27821234567)
+      email: siteSetting("email", "hello@corsetsbyms.co.za"),      // from the admin (Settings)
+      whatsapp: siteSetting("whatsapp", "27000000000").replace(/\D/g, "")   // from the admin (Settings): country code first, digits only
     }
   };
 
@@ -1759,7 +1786,7 @@ window.CorsetsBag = (function () {
    quantity, then the total. Change the WhatsApp number at the top to MS's real one.
    ===================================================== */
 (function () {
-  var WHATSAPP = "27000000000";   // PLACEHOLDER: MS's WhatsApp number, country code first, no + or spaces
+  var WHATSAPP = siteSetting("whatsapp", "27000000000").replace(/\D/g, "");   // MS's WhatsApp number, from the admin (Settings)
 
   var cart = document.getElementById("cart"), bag = document.getElementById("bag");
   if (!cart || !bag || !window.CorsetsBag) return;               // not on the Shop page: do nothing

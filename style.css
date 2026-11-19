@@ -1571,3 +1571,18 @@ html.bag-was-sent #bag-count { visibility: hidden; }                 /* no "0 pi
   /* the hangers' column sits against the right edge, so the Checkout pill never runs off the screen */
   .cart-others { left: auto; right: 8px; transform: none; align-items: flex-end; }
 }
+
+/* =====================================================
+   THE EASTER EGG: after one full, untouched loop of the carousel, the Story slide's title
+   shimmers gold (script.js adds .story-glow). A slow light passes across the letters.
+   ===================================================== */
+/* the light is painted on each copy of the word separately, so the hidden copy (for the hover roll) stays hidden */
+.card.story-glow .card-title .roll > span {
+  background: linear-gradient(100deg, var(--ink) 0%, var(--ink) 36%, #b8873f 44%, #f6e2b3 50%, #b8873f 56%, var(--ink) 64%, var(--ink) 100%);
+  background-size: 300% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: storyShimmer 2.8s ease-in-out infinite;
+}
+@keyframes storyShimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .card.story-glow .card-title .roll > span { animation: none; background: none; color: #b08a52; }   /* a still gold, no movement */
+}

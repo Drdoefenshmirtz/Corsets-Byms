@@ -48,9 +48,11 @@
     $("login").hidden = true; $("app").hidden = false;
     $("who").textContent = user.name + " · " + ROLE[user.role];
     // Team is only for the owner and Majuta
-    Array.prototype.forEach.call(document.querySelectorAll("[data-need=team]"), function (b) { b.hidden = !D.auth.can("team", me); });
+    // each tab marked data-need only shows for the roles allowed it (Team, Policies and Settings: MS and Majuta)
+    Array.prototype.forEach.call(document.querySelectorAll("[data-need]"), function (b) { b.hidden = !D.auth.can(b.getAttribute("data-need"), me); });
     requestAnimationFrame(moveLine);
     drawDepts(); drawList(); drawTeam(); drawInboxes(); drawSlides();
+    Object.keys(EDITORS).forEach(function (k) { if (D.auth.can(k, me)) openEditor(k); });
   }
 
   /* =====================================================
@@ -291,6 +293,237 @@
     var b = this;
     if (!b.dataset.armed) { b.dataset.armed = "1"; b.textContent = "Tap again to delete"; return; }
     D.slides.remove(slideEditing.id).then(function () { closeSlide(); drawSlides(); toast("Slide deleted"); });
+  });
+
+  /* =====================================================
+     THE PAGE EDITORS
+     Each editor is a plan (a list of fields) that the form below is built from. Field types:
+       text, long (several lines), photo (one photo), media (a video that can be swapped for a photo),
+       list (repeating items: reorder, add and remove), group (a box of fields), head (a section title).
+     ===================================================== */
+  var MEDIA = [{ k: "media", type: "media" }];
+  var EDITORS = {
+    story: { fields: [
+      { type: "head", label: "the opening" },
+      { k: "title", label: "Title" },
+      { k: "edgeLeft", label: "Small words, bottom left" },
+      { k: "edgeRight", label: "Small words, bottom right" },
+      { type: "head", label: "who we are", sub: "The paragraph that darkens word by word as you scroll." },
+      { k: "wordsKicker", label: "Small heading" },
+      { k: "words", label: "Story", type: "long", rows: 6 },
+      { type: "head", label: "the craft", sub: "Three panels that rise over a moving background." },
+      { k: "craftKicker", label: "Small heading" },
+      { k: "craftBg", label: "Background", type: "media", wide: true },
+      { k: "craft", label: "Panels", type: "list", fixed: true, item: "panel", fields: [{ k: "title", label: "Word" }, { k: "text", label: "Line", type: "long", rows: 2 }].concat(MEDIA) },
+      { type: "head", label: "in numbers", sub: "The cards that stack as you scroll." },
+      { k: "cardsKicker", label: "Small heading" },
+      { k: "cards", label: "Cards", type: "list", item: "card", blank: { big: "", text: "" }, fields: [{ k: "big", label: "Big number or word" }, { k: "text", label: "Line", type: "long", rows: 2 }] },
+      { type: "head", label: "the quote", sub: "The photo that opens to fill the screen, with a quote over it." },
+      { k: "quote", type: "group", label: "Quote and photo", fields: [{ k: "photo", label: "Photo", type: "photo" }, { k: "text", label: "Quote", type: "long", rows: 3 }, { k: "cite", label: "Who said it" }] },
+      { type: "head", label: "the fabrics" },
+      { k: "fabricsKicker", label: "Small heading" },
+      { k: "fabricsHeading", label: "Heading" },
+      { k: "fabricsText", label: "Text", type: "long", rows: 3 },
+      { k: "fabrics", label: "The two pictures", type: "list", fixed: true, item: "picture", fields: [{ k: "", type: "media" }] },
+      { type: "head", label: "how it works", sub: "The row of steps you can drag sideways." },
+      { k: "stepsKicker", label: "Small heading" },
+      { k: "steps", label: "Steps", type: "list", item: "step", blank: { title: "", text: "", media: { video: "", poster: "", photo: "" } }, fields: [{ k: "title", label: "Step" }, { k: "text", label: "Line", type: "long", rows: 2 }].concat(MEDIA) },
+      { type: "head", label: "the ending" },
+      { k: "endHeading", label: "Heading" },
+      { k: "endButton", label: "Button" }
+    ] },
+    shoppage: { key: "shop", fields: [
+      { type: "head", label: "the opening photo" },
+      { k: "heroPhoto", label: "Photo", type: "photo", wide: true, big: true, empty: "The built-in photo (the heritage corset in the garden)" },
+      { k: "heroMain", label: "Caption" },
+      { k: "heroSub", label: "Small line under it" },
+      { type: "head", label: "the line above the pieces", sub: "One calm line at the top of each department." },
+      { k: "lineWomen", label: "Women" },
+      { k: "lineMen", label: "Men" },
+      { k: "lineMisc", label: "Miscellaneous" }
+    ] },
+    policies: { fields: [
+      { type: "head", label: "FAQs" },
+      { k: "faqs", label: "Questions", type: "list", item: "question", blank: { q: "", a: "" }, fields: [{ k: "q", label: "Question" }, { k: "a", label: "Answer", type: "long", rows: 3 }] },
+      { type: "head", label: "returns policy" },
+      { k: "returns", type: "group", fields: [{ k: "updated", label: "Last updated" }, { k: "sections", label: "Sections", type: "list", item: "section", blank: { h: "", p: "" }, fields: [{ k: "h", label: "Heading" }, { k: "p", label: "Text", type: "long", rows: 4 }] }] },
+      { type: "head", label: "privacy policy" },
+      { k: "privacy", type: "group", fields: [{ k: "updated", label: "Last updated" }, { k: "sections", label: "Sections", type: "list", item: "section", blank: { h: "", p: "" }, fields: [{ k: "h", label: "Heading" }, { k: "p", label: "Text", type: "long", rows: 4 }] }] },
+      { type: "head", label: "terms & conditions" },
+      { k: "terms", type: "group", fields: [{ k: "updated", label: "Last updated" }, { k: "sections", label: "Sections", type: "list", item: "section", blank: { h: "", p: "" }, fields: [{ k: "h", label: "Heading" }, { k: "p", label: "Text", type: "long", rows: 4 }] }] }
+    ] },
+    settings: { fields: [
+      { type: "head", label: "contact details" },
+      { k: "whatsapp", label: "WhatsApp number", input: "tel", hint: "Country code first, then the number, digits only. For example 27821234567." },
+      { k: "email", label: "Email", input: "email" },
+      { type: "head", label: "social links" },
+      { k: "instagram", label: "Instagram link", input: "url", hint: "The full link, e.g. https://www.instagram.com/corsetsbyms" },
+      { k: "tiktok", label: "TikTok link", input: "url", hint: "The full link, e.g. https://www.tiktok.com/@corsetsbyms" }
+    ] }
+  };
+  var drafts = {}, savedCopies = {};
+  function dataKey(name) { return EDITORS[name].key || name; }
+
+  function markDirty(name, dirty) {
+    var st = document.querySelector('[data-state="' + name + '"]');
+    st.textContent = dirty ? "Unsaved changes" : "All saved"; st.classList.toggle("is-dirty", dirty);
+  }
+  function openEditor(name) {
+    D.content.get(dataKey(name)).then(function (data) {
+      drafts[name] = data; savedCopies[name] = JSON.stringify(data);
+      var box = $("cf-" + name); box.textContent = "";
+      build(box, EDITORS[name].fields, data, function () { markDirty(name, JSON.stringify(drafts[name]) !== savedCopies[name]); }, name);
+      markDirty(name, false);
+    });
+  }
+
+  // BUILDS A FORM from a plan, writing every change straight into the draft (obj)
+  function build(box, fields, obj, changed, name) {
+    fields.forEach(function (f) {
+      if (f.type === "head") {
+        var h = document.createElement("h3"); h.className = "cf-head"; h.textContent = f.label; box.appendChild(h);
+        if (f.sub) { var sb = document.createElement("p"); sb.className = "cf-sub"; sb.textContent = f.sub; box.appendChild(sb); }
+        return;
+      }
+      if (f.type === "group") {
+        var g = document.createElement("div"); g.className = "cf-group";
+        if (f.label) { var gl = document.createElement("p"); gl.className = "cf-label"; gl.textContent = f.label; g.appendChild(gl); }
+        build(g, f.fields, obj[f.k], changed, name); box.appendChild(g); return;
+      }
+      if (f.type === "list") { box.appendChild(buildList(f, obj, changed, name)); return; }
+      if (f.type === "media") { box.appendChild(buildMedia(f, f.k ? obj[f.k] : obj, changed)); return; }
+      if (f.type === "photo") { box.appendChild(buildPhoto(f, obj, changed)); return; }
+      // text and long text
+      var l = document.createElement("label"); l.className = "field";
+      var sp = document.createElement("span"); sp.textContent = f.label; l.appendChild(sp);
+      var inp = document.createElement(f.type === "long" ? "textarea" : "input");
+      if (f.type === "long") inp.rows = f.rows || 3; else inp.type = f.input || "text";
+      inp.value = obj[f.k] == null ? "" : obj[f.k];
+      inp.addEventListener("input", function () { obj[f.k] = inp.value; changed(); });
+      l.appendChild(inp);
+      if (f.hint) { var hn = document.createElement("small"); hn.className = "hint"; hn.style.display = "block"; hn.style.margin = "6px 0 0"; hn.textContent = f.hint; l.appendChild(hn); }
+      box.appendChild(l);
+    });
+  }
+  // a repeating list (FAQs, steps, cards...): reorder with the arrows, add and remove (unless it is a fixed set)
+  function buildList(f, obj, changed, name) {
+    var wrap = document.createElement("div"); wrap.className = "cf-list";
+    function draw() {
+      wrap.textContent = "";
+      if (f.label) { var lb = document.createElement("p"); lb.className = "cf-label"; lb.textContent = f.label; wrap.appendChild(lb); }
+      var arr = obj[f.k];
+      arr.forEach(function (it, i) {
+        var card = document.createElement("div"); card.className = "cf-item";
+        var bar = document.createElement("div"); bar.className = "cf-item-bar";
+        bar.innerHTML = '<span class="cf-n"></span><button type="button" aria-label="Move up">↑</button><button type="button" aria-label="Move down">↓</button>';
+        bar.querySelector(".cf-n").textContent = f.item + " " + (i + 1);
+        var b = bar.querySelectorAll("button");
+        b[0].disabled = i === 0; b[1].disabled = i === arr.length - 1;
+        [[0, -1], [1, 1]].forEach(function (x) { b[x[0]].addEventListener("click", function () { var j = i + x[1]; var t = arr[i]; arr[i] = arr[j]; arr[j] = t; changed(); draw(); }); });
+        if (!f.fixed) {
+          var rm = document.createElement("button"); rm.type = "button"; rm.className = "link danger"; rm.textContent = "Remove";
+          rm.addEventListener("click", function () {
+            if (!rm.dataset.armed) { rm.dataset.armed = "1"; rm.textContent = "Tap again to remove"; return; }
+            arr.splice(i, 1); changed(); draw();
+          });
+          bar.appendChild(rm);
+        }
+        card.appendChild(bar);
+        build(card, f.fields, it, changed, name);
+        wrap.appendChild(card);
+      });
+      if (!f.fixed) {
+        var add = document.createElement("button"); add.type = "button"; add.className = "pill ghost cf-add"; add.textContent = "+ Add " + f.item;
+        add.addEventListener("click", function () { arr.push(JSON.parse(JSON.stringify(f.blank || {}))); changed(); draw(); });
+        wrap.appendChild(add);
+      }
+    }
+    draw();
+    return wrap;
+  }
+  // a video that can be swapped for a photo (videos can be uploaded once Supabase is connected)
+  function buildMedia(f, m, changed) {
+    var row = document.createElement("div"); row.className = "cf-media" + (f.wide ? " wide" : "");
+    function draw() {
+      row.innerHTML = '<div class="cf-thumb"><img alt=""></div><div><p class="cf-what"></p><div class="cf-btns"></div></div>';
+      var src = m.photo || m.poster; if (src) row.querySelector("img").src = src; else row.querySelector("img").remove();
+      row.querySelector(".cf-what").innerHTML = (f.label ? "<b>" + f.label + "</b><br>" : "") + (m.photo ? "A photo" : m.video ? "A moving picture" : "Nothing yet") +
+        '<small>' + (m.photo ? "Uploaded here." : m.video ? m.video.split("/").pop() : "") + "</small>";
+      var btns = row.querySelector(".cf-btns");
+      var up = document.createElement("label"); up.className = "link"; up.innerHTML = (m.photo ? "Choose another photo" : "Use a photo instead") + '<input type="file" accept="image/*" hidden>';
+      up.querySelector("input").addEventListener("change", function () {
+        D.savePhoto(this.files[0]).then(function (src) { m.photo = src; changed(); draw(); }).catch(function (err) { toast(err.message); });
+      });
+      btns.appendChild(up);
+      if (m.photo && m.video) {
+        var back = document.createElement("button"); back.type = "button"; back.className = "link"; back.textContent = "Back to the moving picture";
+        back.addEventListener("click", function () { m.photo = ""; changed(); draw(); });
+        btns.appendChild(back);
+      }
+    }
+    draw();
+    return row;
+  }
+  // one photo (the quote photo, the Shop's opening photo)
+  function buildPhoto(f, obj, changed) {
+    var row = document.createElement("div"); row.className = "cf-media" + (f.wide ? " wide" : "");
+    function draw() {
+      var v = obj[f.k];
+      row.innerHTML = '<div class="cf-thumb"><img alt=""></div><div><p class="cf-what"></p><div class="cf-btns"></div></div>';
+      if (v) row.querySelector("img").src = v; else row.querySelector("img").remove();
+      row.querySelector(".cf-what").innerHTML = "<b>" + f.label + "</b><small>" + (v ? (v.indexOf("data:") === 0 ? "Uploaded here." : v.split("/").pop()) : (f.empty || "")) + "</small>";
+      var btns = row.querySelector(".cf-btns");
+      var up = document.createElement("label"); up.className = "link"; up.innerHTML = "Choose a photo" + '<input type="file" accept="image/*" hidden>';
+      up.querySelector("input").addEventListener("change", function () {
+        var p = f.big ? D.savePhoto(this.files[0], 2000, 1400) : D.savePhoto(this.files[0]);
+        p.then(function (src) { obj[f.k] = src; changed(); draw(); }).catch(function (err) { toast(err.message); });
+      });
+      btns.appendChild(up);
+      if (v && f.empty) {
+        var clr = document.createElement("button"); clr.type = "button"; clr.className = "link"; clr.textContent = "Use the built-in photo";
+        clr.addEventListener("click", function () { obj[f.k] = ""; changed(); draw(); });
+        btns.appendChild(clr);
+      }
+    }
+    draw();
+    return row;
+  }
+
+  // the date in words, for "Last updated" (e.g. 19 November 2026)
+  function today() { return new Date().toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" }); }
+
+  // SAVE
+  Array.prototype.forEach.call(document.querySelectorAll("[data-save]"), function (btn) {
+    btn.addEventListener("click", function () {
+      var name = btn.getAttribute("data-save"), d = drafts[name]; if (!d) return;
+      if (name === "policies") {                  // a policy whose text changed gets today's date (unless the date was changed by hand)
+        var before = JSON.parse(savedCopies[name]);
+        ["returns", "privacy", "terms"].forEach(function (id) {
+          if (JSON.stringify(d[id].sections) !== JSON.stringify(before[id].sections) && d[id].updated === before[id].updated) d[id].updated = today();
+        });
+      }
+      if (name === "settings") d.whatsapp = String(d.whatsapp || "").replace(/\D/g, "");   // digits only
+      try {
+        D.content.save(dataKey(name), d).then(function () { toast("Saved. The site shows it straight away."); openEditor(name); });
+      } catch (ex) { toast(ex.message); }
+    });
+  });
+  // PUT BACK THE ORIGINAL (loads the starting version into the form; nothing changes until Save)
+  Array.prototype.forEach.call(document.querySelectorAll("[data-original]"), function (btn) {
+    btn.addEventListener("click", function () {
+      var name = btn.getAttribute("data-original");
+      if (!btn.dataset.armed) { btn.dataset.armed = "1"; btn.textContent = "Tap again: load the original"; setTimeout(function () { btn.dataset.armed = ""; btn.textContent = "Put back the original"; }, 4000); return; }
+      btn.dataset.armed = ""; btn.textContent = "Put back the original";
+      drafts[name] = D.content.original(dataKey(name));
+      var box = $("cf-" + name); box.textContent = "";
+      build(box, EDITORS[name].fields, drafts[name], function () { markDirty(name, true); }, name);
+      markDirty(name, true); toast("The original is loaded. Save to keep it.");
+    });
+  });
+  // leaving with unsaved changes asks first
+  window.addEventListener("beforeunload", function (e) {
+    var dirty = Object.keys(drafts).some(function (n) { return JSON.stringify(drafts[n]) !== savedCopies[n]; });
+    if (dirty) { e.preventDefault(); e.returnValue = ""; }
   });
 
   /* =====================================================

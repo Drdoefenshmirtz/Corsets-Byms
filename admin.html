@@ -65,6 +65,10 @@
       <button type="button" data-tab="orders">Orders<span class="tab-n" id="n-orders"></span></button>
       <button type="button" data-tab="appointments">Appointments<span class="tab-n" id="n-appts"></span></button>
       <button type="button" data-tab="homepage">Homepage</button>
+      <button type="button" data-tab="story" data-need="story">Story</button>
+      <button type="button" data-tab="shoppage" data-need="shoppage">Shop page</button>
+      <button type="button" data-tab="policies" data-need="policies">Policies</button>
+      <button type="button" data-tab="settings" data-need="settings">Settings</button>
       <button type="button" data-tab="team" data-need="team">Team</button>
       <span class="tabs-line" aria-hidden="true"></span>
     </nav>
@@ -103,6 +107,68 @@
       </div>
       <p class="hint">These are the ovals that drift across the homepage. Use the arrows to change their order; the first one is the photo the opening animation grows into.</p>
       <div class="list" id="slides"></div>
+    </section>
+
+    <!-- =====================================================
+         THE PAGE EDITORS: Story, Shop page, Policies and Settings.
+         admin.js builds each form from a plan (EDITORS in admin.js) and saves it through data.js.
+         Staff can edit the Story and the Shop page; Policies and Settings are for MS and Majuta only.
+         ===================================================== -->
+    <section class="panel" data-panel="story" hidden>
+      <div class="panel-head">
+        <h2 class="panel-title">story</h2>
+        <a class="link" href="story.html" target="_blank" rel="noopener">View the Story &nearr;</a>
+      </div>
+      <p class="hint">Everything on the Story page, top to bottom. To swap a video for one of MS&rsquo;s photos, use &ldquo;Use a photo instead&rdquo; (videos can be uploaded once the site is connected to Supabase).</p>
+      <div class="cf" id="cf-story"></div>
+      <!-- SAVE: stays at the bottom of the screen while you scroll the form -->
+      <div class="cf-save">
+        <button type="button" class="pill" data-save="story">Save changes</button>
+        <span class="cf-state" data-state="story"></span>
+        <button type="button" class="link" data-original="story">Put back the original</button>
+      </div>
+    </section>
+    <section class="panel" data-panel="shoppage" hidden>
+      <div class="panel-head">
+        <h2 class="panel-title">shop page</h2>
+        <a class="link" href="shop.html" target="_blank" rel="noopener">View the Shop &nearr;</a>
+      </div>
+      <p class="hint">The words and opening photo on the Shop. The pieces themselves are in Products.</p>
+      <div class="cf" id="cf-shoppage"></div>
+      <!-- SAVE: stays at the bottom of the screen while you scroll the form -->
+      <div class="cf-save">
+        <button type="button" class="pill" data-save="shoppage">Save changes</button>
+        <span class="cf-state" data-state="shoppage"></span>
+        <button type="button" class="link" data-original="shoppage">Put back the original</button>
+      </div>
+    </section>
+    <section class="panel" data-panel="policies" hidden>
+      <div class="panel-head">
+        <h2 class="panel-title">policies</h2>
+        <a class="link" href="info.html" target="_blank" rel="noopener">View the page &nearr;</a>
+      </div>
+      <p class="hint">The Help &amp; policies page: the FAQs, Returns, Privacy and Terms. When you change a policy, its &ldquo;Last updated&rdquo; date fills in by itself.</p>
+      <div class="cf" id="cf-policies"></div>
+      <!-- SAVE: stays at the bottom of the screen while you scroll the form -->
+      <div class="cf-save">
+        <button type="button" class="pill" data-save="policies">Save changes</button>
+        <span class="cf-state" data-state="policies"></span>
+        <button type="button" class="link" data-original="policies">Put back the original</button>
+      </div>
+    </section>
+    <section class="panel" data-panel="settings" hidden>
+      <div class="panel-head">
+        <h2 class="panel-title">settings</h2>
+        <a class="link" href="shop.html#shop-products" target="_blank" rel="noopener">View the Shop &nearr;</a>
+      </div>
+      <p class="hint">The contact details used everywhere on the site: Order on WhatsApp, the booking panel, the Contact tab and the footer links. Change them here once and every page follows. Leave Instagram or TikTok empty to hide that link.</p>
+      <div class="cf" id="cf-settings"></div>
+      <!-- SAVE: stays at the bottom of the screen while you scroll the form -->
+      <div class="cf-save">
+        <button type="button" class="pill" data-save="settings">Save changes</button>
+        <span class="cf-state" data-state="settings"></span>
+        <button type="button" class="link" data-original="settings">Put back the original</button>
+      </div>
     </section>
 
     <!-- TEAM (owner and Majuta only) -->
