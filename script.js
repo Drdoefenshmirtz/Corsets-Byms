@@ -1392,9 +1392,11 @@ window.CorsetsBag = (function () {
   function close() {
     if (busy || !isOpen) return;
     busy = true;
+    var tok = openToken;                                    // if a menu tab closes it at once in the meantime, the steps below stop
     var wait = 0;
     if (layer.scrollTop > 2) { layer.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" }); wait = 500 * k; }   // phones: back to the top first
     setTimeout(function () {
+      if (tok !== openToken || !chosen) return;             // already closed by a menu tab
       // hand the photo back to the flying copy, exactly where it is
       flyer.textContent = ""; flyer.appendChild(img.cloneNode(true));
       flyer.style.transition = "none"; placeFlyer(slot.getBoundingClientRect()); flyer.style.display = "block";
@@ -1402,11 +1404,13 @@ window.CorsetsBag = (function () {
       void flyer.offsetWidth;                               // lets the browser register the spot before it moves
       layer.classList.remove("show");                       // the details sink away first
       setTimeout(function () {
+        if (tok !== openToken || !chosen) return;
         layer.classList.remove("solid");                    // the grid shows again...
         flyer.style.transition = "";
         placeFlyer(chosen.querySelector(".cs-img").getBoundingClientRect());   // ...the photo flies home...
         affected.forEach(function (c) { c.classList.remove("collapse"); c.classList.add("expand"); });   // ...and the pieces unfold
         setTimeout(function () {
+          if (tok !== openToken || !chosen) return;
           // tidy up: everything back to normal
           affected.forEach(function (c) { c.classList.remove("expand"); c.style.removeProperty("--d"); });
           chosen.classList.remove("chosen");

@@ -1,0 +1,26 @@
+/* =====================================================
+   THE FOOTER at the bottom of the Shop (and the Help & policies page)
+   Help links on the left, social links beside them, the name large across the bottom.
+   It uses the page's own colours (--ink, --bg), so on the Shop it follows the time of day.
+   ===================================================== */
+.shop-foot {
+  position: relative; z-index: 2; background: var(--bg, #eee2e2);   /* sits over the Shop's full-screen photo */
+  padding: 12vh 24px 22px;
+  color: var(--ink, #2b2b2b); font-family: var(--font, "Manrope", Helvetica, Arial, sans-serif);
+}
+.sf-cols { padding-top: 56px; border-top: 1px solid color-mix(in srgb, var(--ink, #2b2b2b) 18%, transparent); display: flex; gap: clamp(48px, 10vw, 180px); }
+.sf-col { display: flex; flex-direction: column; gap: 10px; }
+.sf-head { margin: 0 0 6px; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.55; }
+.sf-col a { width: max-content; color: inherit; text-decoration: none; font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; border-bottom: 1px solid transparent; transition: border-color 0.3s; }
+.sf-col a:hover, .sf-col a:focus-visible { border-bottom-color: currentColor; }
+/* the name, very large and quiet, across the full width */
+.sf-mark { margin: 9vh 0 0; font-size: clamp(56px, 15.5vw, 300px); line-height: 0.8; letter-spacing: -0.065em; white-space: nowrap; opacity: 0.92; }
+.sf-small { margin: 18px 0 0; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.55; }
+@media (max-width: 700px) {
+  .sf-col { gap: 2px; }
+  .sf-col a { padding: 7px 0; }        /* bigger tap areas on phones */
+  .shop-foot { padding: 8vh 16px 18px; }
+  .sf-cols { padding-top: 40px; }
+  .sf-cols { gap: 48px; }
+  .sf-mark { font-size: 16.5vw; }
+}

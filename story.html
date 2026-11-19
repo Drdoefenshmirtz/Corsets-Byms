@@ -3,6 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- THE ICONS: the small "MS" in the browser tab (favicon), the full round logo for phone home screens -->
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">   <!-- sharp on every screen (modern browsers use this one) -->
+  <link rel="icon" href="favicon.ico" sizes="48x48">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+  <meta name="theme-color" content="#eee2e2">
   <title>Our story | Corsets by MS</title>
   <meta name="description" content="The story of MS: corsets measured, cut and sewn by hand in South Africa.">
   <link rel="preload" href="fonts/manrope.woff2" as="font" type="font/woff2" crossorigin>
@@ -14,28 +22,18 @@
   <!-- =====================================================
        THE STORY PAGE
        Everything moves with the scroll: story.js works out how far through each section you are
-       and moves the pieces to match. The two 3D scenes (the silk at the top and the lacing at the end)
-       use Three.js (js/three.min.js). The videos are STAND-INS in story/standin, to be replaced with MS's own footage.
+       and moves the pieces to match. The videos are STAND-INS in story/standin, to be replaced with MS's own footage.
        ===================================================== -->
 
-  <!-- THE VEIL: the satin colour the homepage faded into. It melts away once the 3D satin is drawn. -->
-  <div class="st-veil" id="veil" aria-hidden="true"></div>
-
   <!-- NO MENU BAR on this page: the story plays from start to finish without distractions.
-       The way back appears at the very end, under the lacing (and in the footer). -->
-
-  <!-- THE STITCH: a running stitch down the left of the page that sews itself as you scroll
-       (drawn by story.js; scroll back up and it unpicks) -->
-  <svg class="st-stitch" id="stitch" aria-hidden="true"></svg>
+       The way back appears at the very end (and in the footer). -->
 
   <main>
 
-    <!-- 1. THE OPENING: the crimson silk scarf, floating and rippling in 3D. It leans towards the mouse,
-            and as you scroll it billows up and flies away, revealing "the story of ms". -->
+    <!-- 1. THE OPENING: "the story of ms" rises letter by letter as the page opens -->
     <section class="st-open" id="open">
       <div class="st-sticky">
         <h1 class="st-title" id="title" aria-label="The story of MS">the story of ms</h1>
-        <canvas class="st-silk" id="silk" aria-hidden="true"></canvas>
         <p class="st-edge st-edge-l">Made by hand</p>
         <p class="st-edge st-edge-r">South Africa</p>
         <p class="st-edge st-edge-b" id="scroll-hint">Scroll</p>
@@ -141,16 +139,11 @@
       </div>
     </section>
 
-    <!-- 8. THE ENDING: a ribbon laces itself through two rows of eyelets in 3D as you scroll.
-            When it pulls tight and ties into a bow, the booking link appears. -->
-    <section class="st-lace" id="lace">
-      <div class="st-sticky">
-        <canvas class="st-lace-canvas" id="lace-canvas" aria-hidden="true"></canvas>
-        <div class="st-lace-end" id="lace-end">
-          <h2 class="st-h2">now, let&rsquo;s make yours</h2>
-          <a class="st-cta" href="index.html#book"><span class="roll"><span>Book an appointment</span><span aria-hidden="true">Book an appointment</span></span></a>
-          <a class="st-back" href="index.html">Back to the collection</a>
-        </div>
+    <!-- 8. THE ENDING: the booking link (the way back is in the footer below) -->
+    <section class="st-end" id="end">
+      <div class="st-end-inner" id="end-inner">
+        <h2 class="st-h2">now, let&rsquo;s make yours</h2>
+        <a class="st-cta" href="index.html#book"><span class="roll"><span>Book an appointment</span><span aria-hidden="true">Book an appointment</span></span></a>
       </div>
     </section>
 
@@ -158,12 +151,10 @@
 
   <footer class="st-foot">
     <a href="index.html" class="st-logo" aria-label="Corsets by MS homepage"><img src="images/logo-mini.svg" alt="" width="44" height="44"></a>
-    <nav><a href="index.html">Home</a><a href="shop.html">Shop</a><a href="index.html#book">Book appointment</a></nav>
+    <nav><a href="index.html">Home</a><a href="shop.html">Shop</a></nav>
     <p>&copy; Corsets by MS</p>
   </footer>
 
-  <!-- Three.js: the 3D library (only this page loads it) -->
-  <script src="js/three.min.js"></script>
   <script src="story.js"></script>
 </body>
 </html>

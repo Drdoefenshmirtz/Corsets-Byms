@@ -3,6 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- THE ICONS: the small "MS" in the browser tab (favicon), the full round logo for phone home screens -->
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">   <!-- sharp on every screen (modern browsers use this one) -->
+  <link rel="icon" href="favicon.ico" sizes="48x48">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+  <meta name="theme-color" content="#eee2e2">
   <title>Shop | Corsets by MS</title>
 
   <!-- The same style.css as the Menu page, so the menu bar looks identical.
@@ -10,6 +18,8 @@
   <!-- starts downloading the main font (Manrope) straight away, so it is ready when the text appears -->
   <link rel="preload" href="fonts/manrope.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="style.css">
+  <!-- the footer at the bottom of the Shop (help links, social links) -->
+  <link rel="stylesheet" href="footer.css">
 
   <!-- EARLY COLOUR: sets the page to the right time-of-day colour before anything is drawn, so the
        page never flashes the default blush first (script.js keeps it updated afterwards) -->
@@ -198,6 +208,31 @@
           <span class="cs-meta"><span>Occasion Chain Brooch</span><span>R 650</span></span></a>
     </section>
   </main>
+
+  <!-- =====================================================
+       THE FOOTER: help and policies (they open on info.html), and the social links.
+       PLACEHOLDERS: the WhatsApp number (27000000000) and the Instagram and TikTok links
+       go to the right accounts once MS's details are in.
+       ===================================================== -->
+  <footer class="shop-foot">
+    <div class="sf-cols">
+      <nav class="sf-col" aria-label="Help">
+        <p class="sf-head">Help</p>
+        <a href="info.html#faqs">FAQs</a>
+        <a href="info.html#returns">Returns policy</a>
+        <a href="info.html#privacy">Privacy policy</a>
+        <a href="info.html#terms">Terms &amp; conditions</a>
+      </nav>
+      <nav class="sf-col" aria-label="Follow us">
+        <p class="sf-head">Talk to us</p>
+        <a href="https://wa.me/27000000000" target="_blank" rel="noopener">WhatsApp</a>
+        <a href="https://www.instagram.com/" target="_blank" rel="noopener">Instagram</a>
+        <a href="https://www.tiktok.com/" target="_blank" rel="noopener">TikTok</a>
+      </nav>
+    </div>
+    <p class="sf-mark" aria-hidden="true">corsets by ms</p>
+    <p class="sf-small">&copy; 2026 Corsets by MS</p>
+  </footer>
 
   <!-- THE PRODUCT VIEW: opens when a piece is clicked (like the homepage articles). It stays empty and
        hidden until then; script.js fills it in. The look is in style.css under THE PRODUCT VIEW. -->

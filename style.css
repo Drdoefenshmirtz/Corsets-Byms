@@ -1558,3 +1558,16 @@ html.bag-was-sent #bag-count { visibility: hidden; }                 /* no "0 pi
    ===================================================== */
 .page-veil { position: fixed; inset: 0; z-index: 9999; background: #eee2e2; opacity: 0; pointer-events: none; transition: opacity 0.5s ease; }
 .page-veil.is-on { opacity: 1; }
+
+/* =====================================================
+   PHONES: BIGGER TAP AREAS
+   The words stay exactly where they are; invisible padding around them makes them easier to hit.
+   ===================================================== */
+@media (max-width: 700px) {
+  .menu-bar .tabs > a { padding: 12px 0; margin: -12px 0; }          /* Book appointment, Shop, Men, Women, Miscellaneous */
+  .cart-mini { position: relative; }
+  .cart-mini::before { content: ""; position: absolute; inset: -8px -10px; }   /* the small hangers: an invisible, bigger tap area */
+  .cart-checkout { padding: 8px 14px !important; font-size: 10px !important; }
+  /* the hangers' column sits against the right edge, so the Checkout pill never runs off the screen */
+  .cart-others { left: auto; right: 8px; transform: none; align-items: flex-end; }
+}
